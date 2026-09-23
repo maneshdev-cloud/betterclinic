@@ -38,10 +38,18 @@ export const env = {
     : APP_ENV.DEMO) as AppEnvironment,
 
   ai: {
-    provider: trimEnv(process.env.AI_PROVIDER, "none").toLowerCase(),
-    baseUrl: trimEnv(process.env.AI_BASE_URL, "https://api.openai.com/v1"),
-    model: trimEnv(process.env.AI_MODEL, "gpt-4o-mini"),
-    apiKey: trimEnv(process.env.AI_API_KEY),
+    get provider() {
+      return trimEnv(process.env.AI_PROVIDER, (process.env.GROQ_API_KEY || process.env.AI_API_KEY) ? "groq" : "none").toLowerCase();
+    },
+    get baseUrl() {
+      return trimEnv(process.env.AI_BASE_URL, "https://api.groq.com/openai/v1");
+    },
+    get model() {
+      return trimEnv(process.env.AI_MODEL, "openai/gpt-oss-120b");
+    },
+    get apiKey() {
+      return trimEnv(process.env.GROQ_API_KEY || process.env.AI_API_KEY);
+    },
   },
 
   mapsApiKey: trimEnv(process.env.MAPS_API_KEY),
@@ -55,7 +63,7 @@ export function isSupabaseConfigured(): boolean {
 
 /** True when an LLM provider is configured for the assistant (server-side only). */
 export function isAiConfigured(): boolean {
-  return env.ai.provider !== "none" && env.ai.provider.length > 0 && env.ai.apiKey.length > 10;
+  return env.ai.provider !== "none" && env.ai.provider.length > 0 && env.ai.apiKey.length > 5;
 }
 
 /** True when the service-role key is available for server-side admin operations. */

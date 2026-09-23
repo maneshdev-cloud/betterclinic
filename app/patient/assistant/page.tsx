@@ -68,7 +68,9 @@ export default async function PatientAssistantPage() {
         assistantMode={isAiConfigured() ? "llm" : "fallback"}
         modelLabel={isAiConfigured() ? env.ai.model : ""}
       />
-      <p className="text-xs text-muted-foreground">{DISCLAIMER}</p>
+      <p className="text-xs text-muted-foreground">
+        This is not medical advice — always consult your doctor for treatment decisions. {DISCLAIMER}
+      </p>
     </div>
   );
 }

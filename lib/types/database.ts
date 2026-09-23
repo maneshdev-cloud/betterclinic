@@ -435,6 +435,7 @@ export interface AiMessage {
   content: string;
   intent: string | null;
   used_llm: boolean;
+  is_emergency_override?: boolean;
   created_at: string;
 }
 

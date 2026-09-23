@@ -2,6 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AiMessage } from "@/lib/types/database";
 import { buildFallbackReply, type AssistantContext } from "@/lib/assistant/fallback";
 import { generateLlmReply } from "@/lib/assistant/llm";
+import {
+  isEmergencyQuery,
+  EMERGENCY_HARDCODED_REPLY,
+  verifyResponseEntities,
+  FALLBACK_GRACEFUL_NOTE,
+} from "@/lib/assistant/safety";
 import { listPatientAppointments } from "@/services/appointments/service";
 import { listActiveMedications } from "@/services/clinical/service";
 import { listPatientFollowUps } from "@/services/clinical/service";
@@ -13,6 +19,7 @@ export interface AssistantMessageView {
   content: string;
   intent: string | null;
   usedLlm: boolean;
+  isEmergencyOverride?: boolean;
   createdAt: string;
 }
 
@@ -22,10 +29,10 @@ export async function getOrCreateConversation(
   patientId: string
 ): Promise<string> {
   const { data } = await client
-    .from("ai_conversations")
-    .select("id")
-    .eq("patient_id", patientId)
-    .maybeSingle();
+  .from("ai_conversations")
+  .select("id")
+  .eq("patient_id", patientId)
+  .maybeSingle();
   if (data) return (data as { id: string }).id;
 
   const { data: created, error } = await client
@@ -43,7 +50,7 @@ export async function listMessages(
 ): Promise<AssistantMessageView[]> {
   const { data, error } = await client
     .from("ai_messages")
-    .select("id, role, content, intent, used_llm, created_at")
+    .select("id, role, content, intent, used_llm, is_emergency_override, created_at")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true })
     .limit(100);
@@ -54,6 +61,7 @@ export async function listMessages(
     content: string;
     intent: string | null;
     used_llm: boolean;
+    is_emergency_override?: boolean;
     created_at: string;
   }[];
   return rows.map((row) => ({
@@ -62,6 +70,7 @@ export async function listMessages(
     content: row.content,
     intent: row.intent,
     usedLlm: row.used_llm,
+    isEmergencyOverride: row.is_emergency_override ?? false,
     createdAt: row.created_at,
   }));
 }
@@ -69,6 +78,8 @@ export async function listMessages(
 /**
  * Build the assistant's view of the patient's real records. Every reply
  * — LLM or fallback — is grounded in exactly this data.
+ *
+ * READ-ONLY GUARANTEE: Only SELECT queries are executed; no mutations.
  */
 export async function buildAssistantContext(
   client: SupabaseClient,
@@ -129,21 +140,33 @@ export interface AssistantReply {
   reply: string;
   intent: string;
   usedLlm: boolean;
+  isEmergencyOverride?: boolean;
 }
 
 /**
- * Handle one patient message: persist it, build the real-data context,
- * try the LLM (if configured), fall back to the deterministic engine,
- * and persist the assistant reply.
+ * Handle one patient message following the strict layered response architecture:
+ *
+ * 1. Always fetch the patient's actual records first (Grounding).
+ * 2. Pre-LLM Emergency keyword override: if matched, return hardcoded emergency response
+ *    immediately — Groq is NEVER called.
+ * 3. Deterministic records engine: if question confidently matches known patterns
+ *    (appointments, medications, follow-ups, queue, etc.), return direct data answer —
+ *    Groq is NEVER called.
+ * 4. Open-ended queries: Call Groq grounded with real records.
+ *    - Verify response entities against real context (detect hallucinations).
+ *    - If Groq fails (429, timeout, network) or hallucination is detected,
+ *      gracefully degrade to the plain data answer + calm honest notification.
  */
 export async function sendAssistantMessage(
   client: SupabaseClient,
   patientId: string,
   patientName: string,
-  message: string
+  message: string,
+  injectedContext?: AssistantContext
 ): Promise<AssistantReply> {
   const conversationId = await getOrCreateConversation(client, patientId);
 
+  // Persist incoming user message
   const { error: userError } = await client.from("ai_messages").insert({
     conversation_id: conversationId,
     role: "USER",
@@ -151,11 +174,8 @@ export async function sendAssistantMessage(
   });
   if (userError) throw userError;
 
-  const context = await buildAssistantContext(client, patientId, patientName);
-  const history = (await listMessages(client, conversationId))
-    .filter((msg) => msg.id)
-    .slice(-9, -1) // previous turns, excluding the just-inserted user message
-    .map((msg) => ({ role: msg.role.toLowerCase() as "user" | "assistant", content: msg.content }));
+  // 1. Always fetch the patient's actual relevant records from Supabase first
+  const context = injectedContext ?? (await buildAssistantContext(client, patientId, patientName));
 
   const { data: prefRow } = await client
     .from("user_preferences")
@@ -170,16 +190,66 @@ export async function sendAssistantMessage(
   const responseLength: "concise" | "detailed" =
     prefRow?.ai_response_length === "detailed" ? "detailed" : "concise";
 
-  const llmReply = await generateLlmReply(history, message, context, responseLength);
+  // 2. Keyword-triggered emergency override before LLM is ever called
+  if (isEmergencyQuery(message)) {
+    const reply = EMERGENCY_HARDCODED_REPLY;
+    const intent = "emergency_override";
+
+    await client.from("ai_messages").insert({
+      conversation_id: conversationId,
+      role: "ASSISTANT",
+      content: reply,
+      intent,
+      used_llm: false,
+      is_emergency_override: true,
+    });
+
+    return { reply, intent, usedLlm: false, isEmergencyOverride: true };
+  }
+
+  // 3. Try deterministic fallback first against fetched data
+  const fallback = buildFallbackReply(message, context, responseLength);
+  if (fallback.intent !== "unknown") {
+    // Confident match to known pattern — answer directly from database, zero Groq call!
+    await client.from("ai_messages").insert({
+      conversation_id: conversationId,
+      role: "ASSISTANT",
+      content: fallback.reply,
+      intent: fallback.intent,
+      used_llm: false,
+      is_emergency_override: false,
+    });
+
+    return { reply: fallback.reply, intent: fallback.intent, usedLlm: false, isEmergencyOverride: false };
+  }
+
+  // 4. Unknown pattern: Call Groq passing the fetched data as grounding context
+  const history = (await listMessages(client, conversationId))
+    .filter((msg) => msg.id)
+    .slice(-9, -1) // up to 4 exchanges (excluding the just-inserted message)
+    .map((msg) => ({ role: msg.role.toLowerCase() as "user" | "assistant", content: msg.content }));
+
   let reply: string;
-  let intent: string;
+  let intent: string = "llm";
+  let usedLlm = false;
+
+  const llmReply = await generateLlmReply(history, message, context, responseLength);
   if (llmReply !== null) {
-    reply = llmReply;
-    intent = "llm";
+    // Post-response verification against real data (scoped entity matching)
+    const verification = verifyResponseEntities(llmReply, context);
+    if (verification.valid) {
+      reply = llmReply;
+      usedLlm = true;
+    } else {
+      console.warn(`[Groq AI] Response discarded due to entity verification: ${verification.reason}`);
+      // Hallucinated entity detected — discard and fallback gracefully
+      reply = fallback.reply + FALLBACK_GRACEFUL_NOTE;
+      intent = "fallback_entity_mismatch";
+    }
   } else {
-    const fallback = buildFallbackReply(message, context, responseLength);
-    reply = fallback.reply;
-    intent = fallback.intent;
+    // Groq call failed (quota 429, timeout, network error, or invalid key)
+    reply = fallback.reply + FALLBACK_GRACEFUL_NOTE;
+    intent = "fallback_llm_failed";
   }
 
   const { error: assistantError } = await client.from("ai_messages").insert({
@@ -187,9 +257,10 @@ export async function sendAssistantMessage(
     role: "ASSISTANT",
     content: reply,
     intent,
-    used_llm: llmReply !== null,
+    used_llm: usedLlm,
+    is_emergency_override: false,
   });
   if (assistantError) throw assistantError;
 
-  return { reply, intent, usedLlm: llmReply !== null };
+  return { reply, intent, usedLlm, isEmergencyOverride: false };
 }

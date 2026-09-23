@@ -171,9 +171,15 @@ export function AssistantChat({ initialMessages, assistantMode, modelLabel }: Ch
             <span className="sr-only">Send</span>
           </Button>
         </div>
-        <p className="mt-1.5 text-xs text-muted-foreground">
-          Not a doctor — answers come from your clinic records only. In an emergency, call 108.
-        </p>
+
+        <div className="mt-2 flex flex-col gap-0.5 rounded border border-amber-200/60 bg-amber-50/50 px-2.5 py-1.5 text-xs text-amber-900/90 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+          <p className="font-medium">
+            This is not medical advice — always consult your doctor for treatment decisions.
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            Answers are grounded strictly in your clinic records. In a medical emergency, call 108 or 112 immediately.
+          </p>
+        </div>
       </div>
     </div>
   );
