@@ -41,7 +41,21 @@ export function nowClinicTime(): string {
 }
 
 export function toDate(value: string | Date): Date {
-  return typeof value === "string" ? parseISO(value) : value;
+  if (value instanceof Date) return value;
+  if (typeof value === "string") {
+    // If it's a date-only string (YYYY-MM-DD), anchor at noon UTC so
+    // no local timezone offset shifts the calendar day across devices.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return parseISO(`${value}T12:00:00Z`);
+    }
+    // If it's a UTC midnight ISO timestamp (e.g. 2026-09-28T00:00:00.000Z),
+    // anchor to noon UTC so it represents the clinic day without shifting back.
+    if (/^\d{4}-\d{2}-\d{2}T00:00:00(\.000)?Z?$/.test(value)) {
+      return parseISO(`${value.slice(0, 10)}T12:00:00Z`);
+    }
+    return parseISO(value);
+  }
+  return new Date(value);
 }
 
 /** 16 Sep 2026 */

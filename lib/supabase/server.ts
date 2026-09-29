@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { env, isSupabaseConfigured } from "@/lib/env";
@@ -14,8 +15,9 @@ export interface CreateClientOptions {
  * Server-side Supabase client bound to the request's cookies.
  * Use in Server Components, Server Actions and Route Handlers.
  * When "Hide demo data" mode is active, automatically excludes synthetic rows on SELECTs.
+ * Cached per request with React.cache to avoid redundant client creation.
  */
-export async function createClient(options: CreateClientOptions = {}) {
+export const createClient = cache(async (options: CreateClientOptions = {}) => {
   if (!isSupabaseConfigured()) {
     throw new AppError("SUPABASE_NOT_CONFIGURED");
   }
@@ -59,4 +61,4 @@ export async function createClient(options: CreateClientOptions = {}) {
   }
 
   return client;
-}
+});

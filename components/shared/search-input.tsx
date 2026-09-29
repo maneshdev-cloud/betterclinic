@@ -10,7 +10,7 @@ interface SearchInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
-  /** Debounce in ms (default 400). */
+  /** Debounce in ms (default 300). */
   debounceMs?: number;
   disabled?: boolean;
   ariaLabel?: string;
@@ -19,19 +19,20 @@ interface SearchInputProps {
 /**
  * Debounced search input. Typing updates the visible field immediately
  * but only notifies the parent after the user pauses, keeping queries
- * cheap.
+ * cheap. Clearing via the "X" button or Escape key fires immediately (0ms).
  */
 export function SearchInput({
   value,
   onChange,
   placeholder = "Search…",
   className,
-  debounceMs = 400,
+  debounceMs = 300,
   disabled,
   ariaLabel,
 }: SearchInputProps) {
   const [internal, setInternal] = useState(value);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Keep the field in sync when the URL/filters are reset externally.
   useEffect(() => {
@@ -48,13 +49,27 @@ export function SearchInput({
     timer.current = setTimeout(() => onChange(next), debounceMs);
   };
 
+  const handleClear = () => {
+    setInternal("");
+    clearTimeout(timer.current);
+    onChange("");
+    inputRef.current?.focus();
+  };
+
   return (
     <div className={cn("relative", className)}>
       <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
       <Input
+        ref={inputRef}
         type="search"
         value={internal}
         onChange={(event) => handleChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && internal) {
+            handleClear();
+            event.preventDefault();
+          }
+        }}
         placeholder={placeholder}
         disabled={disabled}
         aria-label={ariaLabel ?? placeholder}
@@ -63,8 +78,8 @@ export function SearchInput({
       {internal ? (
         <button
           type="button"
-          onClick={() => handleChange("")}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+          onClick={handleClear}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm p-0.5"
           aria-label="Clear search"
         >
           <X className="h-4 w-4" aria-hidden />

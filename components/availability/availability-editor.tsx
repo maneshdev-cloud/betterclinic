@@ -293,7 +293,7 @@ export function AvailabilityEditor({ clinics, initialByClinic }: AvailabilityEdi
           Saving replaces this clinic&apos;s weekly schedule. Already-booked slots are kept; free future
           slots regenerate from the new times.
         </p>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto shrink-0">
           <Save className="mr-1.5 h-4 w-4" aria-hidden />
           {saving ? "Saving…" : "Save schedule"}
         </Button>

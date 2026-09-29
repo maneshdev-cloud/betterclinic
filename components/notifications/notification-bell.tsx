@@ -68,14 +68,30 @@ export function NotificationBell({ userId, viewAllHref }: { userId: string; view
       if (unreadResult.error || recentResult.error) {
         setStatus("error");
       } else {
+        const rawRecent = (recentResult.data ?? []) as NotificationRow[];
+        const uniqueRecent = Array.from(new Map(rawRecent.map((item) => [item.id, item])).values());
         setUnread(unreadResult.count ?? 0);
-        setRecent((recentResult.data ?? []) as NotificationRow[]);
+        setRecent(uniqueRecent);
         setStatus("ready");
       }
     } catch {
       setStatus("error");
     }
   }, [userId]);
+
+  // Update browser tab title with unread badge so users never miss critical updates
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const baseTitle = document.title.replace(/^\(\d+\+?\)\s*/, "");
+    if (unread > 0) {
+      document.title = `(${unread > 9 ? "9+" : unread}) ${baseTitle}`;
+    } else {
+      document.title = baseTitle;
+    }
+    return () => {
+      document.title = baseTitle;
+    };
+  }, [unread]);
 
   useEffect(() => {
     void load();
@@ -115,21 +131,69 @@ export function NotificationBell({ userId, viewAllHref }: { userId: string; view
     } catch {
       // Realtime unavailable — initial load still happened.
     }
-    return () => cleanup?.();
+
+    // Reconcile on tab visibility restore or online reconnect
+    const handleReconcile = () => {
+      if (document.visibilityState === "visible" || navigator.onLine) {
+        void load();
+      }
+    };
+    window.addEventListener("visibilitychange", handleReconcile);
+    window.addEventListener("online", handleReconcile);
+    window.addEventListener("focus", handleReconcile);
+
+    return () => {
+      cleanup?.();
+      window.removeEventListener("visibilitychange", handleReconcile);
+      window.removeEventListener("online", handleReconcile);
+      window.removeEventListener("focus", handleReconcile);
+    };
   }, [userId, load, soundEnabled, playNotificationChime]);
 
-  const markAllRead = async () => {
-    setMarkingAll(true);
+  const markSingleRead = async (id: string, isRead: boolean) => {
+    if (isRead) return;
+    setRecent((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    setUnread((prev) => Math.max(0, prev - 1));
     try {
       const supabase = createClient();
       await supabase
         .from("notifications")
         .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq("id", id);
+    } catch {
+      // Non-critical background sync failure
+    }
+  };
+
+  const markAllRead = async () => {
+    if (markingAll) return;
+    setMarkingAll(true);
+    const prevUnread = unread;
+    const prevRecent = [...recent];
+
+    // Optimistic UI update
+    setUnread(0);
+    setRecent((prev) => prev.map((n) => ({ ...n, is_read: true })));
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("notifications")
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq("user_id", userId)
         .eq("is_read", false);
-      await load();
+
+      if (error) {
+        // Rollback on error
+        setUnread(prevUnread);
+        setRecent(prevRecent);
+      } else {
+        await load();
+      }
     } catch {
-      // ignore
+      // Rollback on network failure
+      setUnread(prevUnread);
+      setRecent(prevRecent);
     } finally {
       setMarkingAll(false);
     }
@@ -192,7 +256,20 @@ export function NotificationBell({ userId, viewAllHref }: { userId: string; view
             recent.map((row) => (
               <div
                 key={row.id}
-                className={cn("border-b px-3 py-2.5 last:border-b-0", !row.is_read && "bg-primary/5")}
+                role="button"
+                tabIndex={0}
+                onClick={() => markSingleRead(row.id, row.is_read)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    markSingleRead(row.id, row.is_read);
+                  }
+                }}
+                className={cn(
+                  "border-b px-3 py-2.5 last:border-b-0 cursor-pointer transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:bg-muted/80",
+                  !row.is_read && "bg-primary/5 font-medium"
+                )}
+                aria-label={`${row.title}. ${row.is_read ? "Read" : "Unread. Press to mark as read"}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className={cn("text-sm", row.is_read ? "font-normal" : "font-semibold")}>{row.title}</p>

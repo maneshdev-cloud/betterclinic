@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/services/auth/service";
 import { listPatientFollowUps } from "@/services/clinical/service";
 import { formatDate } from "@/lib/utils";
+import { LiveRefresh } from "@/components/queue/live-refresh";
 
 export const metadata: Metadata = { title: "My follow-ups" };
 
@@ -25,6 +26,11 @@ export default async function PatientFollowUpsPage() {
 
   return (
     <div className="page-container space-y-6 py-8">
+      <LiveRefresh
+        channelKey={`patient-followups-${user.id}`}
+        filters={`follow_up_recommendations:patient_id=eq.${user.id}`}
+        showIndicator
+      />
       <PageHeader
         title="My follow-ups"
         description="Return visits your doctors scheduled after consultations."

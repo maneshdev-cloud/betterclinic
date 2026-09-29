@@ -87,7 +87,8 @@ export function AddRoleForm({
       if (res.error || res.fieldErrors) {
         setState(res);
       } else if (res.redirectUrl) {
-        window.location.replace(res.redirectUrl);
+        router.replace(res.redirectUrl);
+        router.refresh();
       }
     });
   }

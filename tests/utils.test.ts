@@ -8,6 +8,10 @@ import {
   ageFrom,
   pageRange,
   totalPages,
+  formatDate,
+  formatDateWithDay,
+  todayClinicDate,
+  toDate,
 } from "@/lib/utils";
 
 describe("formatINR", () => {
@@ -99,3 +103,27 @@ describe("ageFrom", () => {
     expect(ageFrom(`${new Date().getUTCFullYear() + 5}-01-01`)).toBeNull(); // future birth
   });
 });
+
+describe("date and timezone stability", () => {
+  it("formats date strings without timezone day-shift", () => {
+    expect(formatDate("2026-09-28")).toBe("28 Sep 2026");
+    expect(formatDate("2026-01-01")).toBe("1 Jan 2026");
+    expect(formatDate(null)).toBe("—");
+  });
+
+  it("formats dates with day of week without shifting", () => {
+    // 2026-09-28 is a Monday
+    expect(formatDateWithDay("2026-09-28")).toBe("Mon, 28 Sep 2026");
+  });
+
+  it("produces valid YYYY-MM-DD for todayClinicDate", () => {
+    const today = todayClinicDate();
+    expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("anchors plain date toDate at noon UTC", () => {
+    const parsed = toDate("2026-09-28");
+    expect(parsed.toISOString()).toContain("2026-09-28T12:00:00");
+  });
+});
+

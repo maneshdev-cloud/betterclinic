@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { roleHomePath, type Role } from "@/lib/constants";
 import type { Profile } from "@/lib/types/database";
+import { withRetry } from "@/lib/network/with-retry";
 
 export interface SessionUser {
   id: string;
@@ -21,19 +22,28 @@ export interface SessionUser {
  * Returns the signed-in user with their profile and all active roles.
  * Wrapped in React cache() so it executes at most once per server request,
  * eliminating redundant auth round-trips and profile queries.
+ * Network queries are protected with withRetry against transient glitches.
  */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   try {
     const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await withRetry(() => supabase.auth.getUser());
     if (!user) return null;
 
-    const [{ data: profile }, { data: rolesRows }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).single(),
-      supabase.from("profile_roles").select("role").eq("profile_id", user.id),
-    ]);
+    const [{ data: profile }, { data: rolesRows }] = await withRetry(
+      () =>
+        Promise.all([
+          supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single(),
+          supabase.from("profile_roles").select("role").eq("profile_id", user.id),
+        ]),
+      { retries: 1, backoffs: [150] }
+    );
 
     const roles: Role[] =
       rolesRows && rolesRows.length > 0

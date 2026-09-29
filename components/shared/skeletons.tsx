@@ -1,5 +1,8 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { EscalatingSkeletonNote } from "./escalating-skeleton-note";
+
+export { EscalatingSkeletonNote };
 
 export function StatCardSkeleton() {
   return (
@@ -127,6 +130,7 @@ export function QueueTicketSkeleton() {
 export function DashboardSkeleton({ title = "Dashboard" }: { title?: string }) {
   return (
     <div className="page-container space-y-6 py-6">
+      <EscalatingSkeletonNote />
       <div className="space-y-1">
         <Skeleton className="h-7 w-48" />
         <Skeleton className="h-4 w-72" />
@@ -174,6 +178,7 @@ export function DashboardSkeleton({ title = "Dashboard" }: { title?: string }) {
 export function TablePageSkeleton({ title = "Overview" }: { title?: string }) {
   return (
     <div className="page-container space-y-6 py-6">
+      <EscalatingSkeletonNote />
       <div className="space-y-1">
         <Skeleton className="h-7 w-48" />
         <Skeleton className="h-4 w-72" />
@@ -191,6 +196,7 @@ export function TablePageSkeleton({ title = "Overview" }: { title?: string }) {
 export function SettingsSkeleton() {
   return (
     <div className="page-container max-w-3xl space-y-6 py-8">
+      <EscalatingSkeletonNote />
       <div className="space-y-1">
         <Skeleton className="h-7 w-32" />
         <Skeleton className="h-4 w-64" />
@@ -271,6 +277,37 @@ export function CardsGridSkeleton({ count = 6 }: { count?: number }) {
           <DoctorCardSkeleton key={i} />
         ))}
       </div>
+    </div>
+  );
+}
+
+export function AppointmentCardSkeleton() {
+  return (
+    <Card className="p-5 space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-3 w-56" />
+          </div>
+        </div>
+        <Skeleton className="h-6 w-24 rounded-full" />
+      </div>
+      <div className="pt-2 border-t flex items-center justify-between">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-8 w-28 rounded-md" />
+      </div>
+    </Card>
+  );
+}
+
+export function AppointmentsListSkeleton({ count = 3 }: { count?: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <AppointmentCardSkeleton key={i} />
+      ))}
     </div>
   );
 }

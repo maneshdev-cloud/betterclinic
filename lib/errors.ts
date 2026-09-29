@@ -7,6 +7,10 @@
  * That token drives the mapping below.
  */
 
+import { isNetworkError } from "@/lib/network/is-network-error";
+
+export { isNetworkError };
+
 export type AppErrorCode =
   | "SUPABASE_NOT_CONFIGURED"
   | "UNAUTHENTICATED"
@@ -149,7 +153,7 @@ export function toAppError(error: unknown): AppError {
       "Email rate limit exceeded (free-tier allows 3 emails/hour). In Supabase Dashboard → Auth → Providers → Email, turn OFF 'Confirm email' for instant signups."
     );
   }
-  if (lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("fetch failed"))
+  if (isNetworkError(error) || lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("fetch failed"))
     return new AppError("NETWORK");
   if (err?.status === 401) return new AppError("UNAUTHENTICATED");
   if (err?.status === 403) return new AppError("FORBIDDEN");

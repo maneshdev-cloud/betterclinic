@@ -11,13 +11,12 @@ export default async function AdminSettingsPage() {
   const user = await requireRole(["CLINIC_ADMIN"], "/admin/settings");
   const supabase = await createClient();
 
-  const [profileRow, preferences, clinic] = await Promise.all([
-    supabase.from("profiles").select("avatar_url").eq("id", user.id).single(),
+  const [preferences, clinic] = await Promise.all([
     getUserPreferences(supabase, user.id),
     getStaffClinicContext(user.id),
   ]);
 
-  const avatarUrl = (profileRow.data as { avatar_url: string | null } | null)?.avatar_url ?? null;
+  const avatarUrl = user.avatarUrl;
 
   let inviteCodes: InviteCodeItem[] = [];
   if (clinic) {

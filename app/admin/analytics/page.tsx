@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/shared/page-header";
 import { AnalyticsView } from "@/components/analytics/analytics-view";
+import { DashboardSkeleton } from "@/components/shared/skeletons";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/services/auth/service";
 import { getStaffClinicContext } from "@/services/clinics/service";
@@ -11,6 +13,28 @@ export const metadata: Metadata = { title: "Analytics" };
 
 interface PageProps {
   searchParams: Record<string, string | string[] | undefined>;
+}
+
+async function AnalyticsContent({
+  clinicId,
+  params,
+  doctorId,
+}: {
+  clinicId: string;
+  params: Record<string, string>;
+  doctorId?: string;
+}) {
+  const supabase = await createClient();
+  const analytics = await getClinicAnalytics(supabase, clinicId, params, doctorId);
+
+  return (
+    <AnalyticsView
+      analytics={analytics}
+      basePath="/admin/analytics"
+      selectedDoctorId={doctorId}
+      doctorOptions={analytics.doctors.map((doctor) => ({ id: doctor.doctorId, name: doctor.name }))}
+    />
+  );
 }
 
 export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
@@ -27,21 +51,15 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
     );
   }
 
-  const supabase = await createClient();
-  const analytics = await getClinicAnalytics(supabase, clinic.id, params, doctorId);
-
   return (
     <div className="page-container space-y-6 py-8">
       <PageHeader
         title="Clinic analytics"
         description={`Real operational data for ${clinic.name} — appointments, queue performance and doctor activity.`}
       />
-      <AnalyticsView
-        analytics={analytics}
-        basePath="/admin/analytics"
-        selectedDoctorId={doctorId}
-        doctorOptions={analytics.doctors.map((doctor) => ({ id: doctor.doctorId, name: doctor.name }))}
-      />
+      <Suspense fallback={<DashboardSkeleton title="Loading analytics…" />}>
+        <AnalyticsContent clinicId={clinic.id} params={params} doctorId={doctorId} />
+      </Suspense>
     </div>
   );
 }

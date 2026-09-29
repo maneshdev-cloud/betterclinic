@@ -68,30 +68,36 @@ export function PrescriptionEditor({
   };
 
   const handleSave = async () => {
+    if (pending) return;
     setPending(true);
     setError(null);
-    const result = await savePrescriptionAction({
-      consultationId,
-      notes,
-      items: drafts.map((draft) => ({
-        medicine_name: draft.medicine_name,
-        generic_name: draft.generic_name,
-        strength: draft.strength,
-        dose: draft.dose,
-        frequency: draft.frequency,
-        duration_days: draft.duration_days,
-        instructions: draft.instructions,
-        food_relation: draft.food_relation,
-      })),
-    });
-    if (result.ok) {
-      toast.success(`Prescription saved — ${result.data?.items ?? 0} medicine(s), schedule generated`);
-      setDrafts([{ ...EMPTY_ITEM }]);
-      router.refresh();
-    } else {
-      setError(result.error ?? "Could not save the prescription.");
+    try {
+      const result = await savePrescriptionAction({
+        consultationId,
+        notes,
+        items: drafts.map((draft) => ({
+          medicine_name: draft.medicine_name,
+          generic_name: draft.generic_name,
+          strength: draft.strength,
+          dose: draft.dose,
+          frequency: draft.frequency,
+          duration_days: draft.duration_days,
+          instructions: draft.instructions,
+          food_relation: draft.food_relation,
+        })),
+      });
+      if (result.ok) {
+        toast.success(`Prescription saved — ${result.data?.items ?? 0} medicine(s), schedule generated`);
+        setDrafts([{ ...EMPTY_ITEM }]);
+        router.refresh();
+      } else {
+        setError(result.error ?? "Could not save the prescription.");
+      }
+    } catch {
+      setError("Network or server failure while saving prescription.");
+    } finally {
+      setPending(false);
     }
-    setPending(false);
   };
 
   const firstInvalid =
@@ -298,7 +304,7 @@ export function PrescriptionEditor({
           </p>
         ) : null}
 
-        <Button onClick={handleSave} disabled={pending || firstInvalid}>
+        <Button onClick={handleSave} disabled={pending || firstInvalid} className="w-full sm:w-auto">
           <Pill className="mr-1.5 h-4 w-4" aria-hidden />
           {pending ? "Saving…" : "Save prescription"}
         </Button>

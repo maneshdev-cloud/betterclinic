@@ -13,6 +13,7 @@ import { listDoctorConsultations } from "@/services/clinical/service";
 import { searchParamsToObject, buildQueryString } from "@/lib/search-params";
 import { UrlSearch } from "@/components/shared/url-search";
 import { formatDate, formatTimeString, cn } from "@/lib/utils";
+import { LiveRefresh } from "@/components/queue/live-refresh";
 
 export const metadata: Metadata = { title: "Consultations" };
 
@@ -80,57 +81,62 @@ export default async function DoctorConsultationsPage({ searchParams }: PageProp
         />
       </div>
 
-      {result.items.length === 0 ? (
-        <EmptyState
-          icon={ClipboardList}
-          title={q ? "No consultations match your search" : "No consultations yet"}
-          description={
-            q
-              ? `No consultations with a patient named “${q}”. Try another name or clear the search.`
-              : "Start a consultation from your live queue — it will appear here with notes, prescriptions and follow-ups."
-          }
-          action={
-            <Button asChild size="sm">
-              <Link href="/doctor/queue">Open live queue</Link>
-            </Button>
+      <LiveRefresh
+        channelKey={`doctor-consultations-${user.id}`}
+        filters={`consultations:doctor_id=eq.${user.id};appointments:doctor_id=eq.${user.id}`}
+      >
+        {result.items.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title={q ? "No consultations match your search" : "No consultations yet"}
+            description={
+              q
+                ? `No consultations with a patient named “${q}”. Try another name or clear the search.`
+                : "Start a consultation from your live queue — it will appear here with notes, prescriptions and follow-ups."
+            }
+            action={
+              <Button asChild size="sm">
+                <Link href="/doctor/queue">Open live queue</Link>
+              </Button>
+            }
+          />
+        ) : (
+          <div className="space-y-3">
+            {result.items.map((consultation) => (
+              <Card key={consultation.id}>
+                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={consultation.status === "COMPLETED" ? "success" : "info"}>
+                        {consultation.status === "COMPLETED" ? "Completed" : "In progress"}
+                      </Badge>
+                      {consultation.has_prescription ? <Badge variant="outline">Prescription</Badge> : null}
+                    </div>
+                    <p className="font-medium text-foreground">{consultation.patient_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDate(consultation.started_at)} · {formatTimeString(consultation.appointment_time)} ·{" "}
+                      {consultation.chief_complaint || "No chief complaint recorded"}
+                    </p>
+                  </div>
+                  <Button asChild size="sm" variant={consultation.status === "IN_PROGRESS" ? "default" : "outline"}>
+                    <Link href={`/doctor/consultations/${consultation.id}`}>
+                      {consultation.status === "IN_PROGRESS" ? "Open workspace" : "View record"}
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <Pagination
+          page={result.page}
+          totalPages={result.totalPages}
+          buildHref={(nextPage) =>
+            `/doctor/consultations${buildQueryString({ status, q: q || undefined, page: nextPage === 1 ? undefined : nextPage })}`
           }
         />
-      ) : (
-        <div className="space-y-3">
-          {result.items.map((consultation) => (
-            <Card key={consultation.id}>
-              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={consultation.status === "COMPLETED" ? "success" : "info"}>
-                      {consultation.status === "COMPLETED" ? "Completed" : "In progress"}
-                    </Badge>
-                    {consultation.has_prescription ? <Badge variant="outline">Prescription</Badge> : null}
-                  </div>
-                  <p className="font-medium text-foreground">{consultation.patient_name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDate(consultation.started_at)} · {formatTimeString(consultation.appointment_time)} ·{" "}
-                    {consultation.chief_complaint || "No chief complaint recorded"}
-                  </p>
-                </div>
-                <Button asChild size="sm" variant={consultation.status === "IN_PROGRESS" ? "default" : "outline"}>
-                  <Link href={`/doctor/consultations/${consultation.id}`}>
-                    {consultation.status === "IN_PROGRESS" ? "Open workspace" : "View record"}
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      <Pagination
-        page={result.page}
-        totalPages={result.totalPages}
-        buildHref={(nextPage) =>
-          `/doctor/consultations${buildQueryString({ status, q: q || undefined, page: nextPage === 1 ? undefined : nextPage })}`
-        }
-      />
+      </LiveRefresh>
     </div>
   );
 }

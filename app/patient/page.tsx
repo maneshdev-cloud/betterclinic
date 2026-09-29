@@ -16,7 +16,7 @@ export default async function PatientDashboard() {
   const supabase = await createClient();
   const { data: patient } = await supabase
     .from("patients")
-    .select("*")
+    .select("id, date_of_birth, city, emergency_contact_phone, blood_group")
     .eq("id", user.id)
     .single();
 

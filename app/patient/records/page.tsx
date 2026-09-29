@@ -9,6 +9,7 @@ import { requireRole } from "@/services/auth/service";
 import { getPatientTimeline } from "@/services/clinical/service";
 import { formatDate } from "@/lib/utils";
 import { MEDICAL_HISTORY_LABELS } from "@/lib/constants";
+import { LiveRefresh } from "@/components/queue/live-refresh";
 
 export const metadata: Metadata = { title: "Medical records" };
 
@@ -25,6 +26,11 @@ export default async function PatientRecordsPage() {
 
   return (
     <div className="page-container space-y-6 py-8">
+      <LiveRefresh
+        channelKey={`patient-records-${user.id}`}
+        filters={`consultations:patient_id=eq.${user.id};prescriptions:patient_id=eq.${user.id};patient_medical_history:patient_id=eq.${user.id}`}
+        showIndicator
+      />
       <PageHeader
         title="Medical records"
         description="Your consolidated health timeline — consultations, prescriptions and recorded history."

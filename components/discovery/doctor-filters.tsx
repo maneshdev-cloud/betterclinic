@@ -192,9 +192,9 @@ export function DoctorFilters({ values, specializations, cities }: DoctorFilters
           </Select>
         </div>
 
-        <fieldset className="flex items-end gap-5 md:col-span-2">
+        <fieldset className="flex flex-wrap items-center gap-3 sm:gap-5 md:col-span-2 pt-1">
           <legend className="sr-only">Quick filters</legend>
-          <label className="flex cursor-pointer items-center gap-2 pb-1 text-sm">
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
             <Checkbox
               checked={values.availableToday}
               onCheckedChange={(checked) => apply({ availableToday: checked === true })}
@@ -204,7 +204,7 @@ export function DoctorFilters({ values, specializations, cities }: DoctorFilters
               Available today
             </Label>
           </label>
-          <label className="flex cursor-pointer items-center gap-2 pb-1 text-sm">
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
             <Checkbox
               checked={values.acceptingPatients}
               onCheckedChange={(checked) => apply({ acceptingPatients: checked === true })}
@@ -218,14 +218,14 @@ export function DoctorFilters({ values, specializations, cities }: DoctorFilters
             <Button
               variant="ghost"
               size="sm"
-              className="mb-0.5"
+              className="h-8 px-2"
               onClick={() =>
                 startTransition(() => {
                   router.push("/patient/doctors", { scroll: false });
                 })
               }
             >
-              <RotateCcw className="mr-1.5 h-4 w-4" aria-hidden /> Reset
+              <RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden /> Reset
             </Button>
           ) : null}
         </fieldset>

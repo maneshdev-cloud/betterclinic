@@ -118,14 +118,16 @@ export default async function DoctorDashboard() {
               ) : (
                 <div className="space-y-2">
                   {todayAppointments.slice(0, 5).map((appt) => (
-                    <div key={appt.id} className="flex items-center justify-between rounded border p-2.5 text-sm">
-                      <div>
-                        <p className="font-medium">{appt.patient_name}</p>
-                        <p className="text-xs text-muted-foreground">
+                    <div key={appt.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded border p-2.5 text-sm">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{appt.patient_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
                           {formatTimeString(appt.start_time)} – {formatTimeString(appt.end_time)} · {appt.visit_reason}
                         </p>
                       </div>
-                      <AppointmentStatusBadge status={appt.status} />
+                      <div className="shrink-0 self-start sm:self-auto">
+                        <AppointmentStatusBadge status={appt.status} />
+                      </div>
                     </div>
                   ))}
                 </div>

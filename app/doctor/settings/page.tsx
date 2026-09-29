@@ -13,8 +13,7 @@ export default async function DoctorSettingsPage() {
   const user = await requireRole(["DOCTOR"], "/doctor/settings");
   const supabase = await createClient();
 
-  const [profileRow, preferences, doctorClinicsRes, allClinicsRes] = await Promise.all([
-    supabase.from("profiles").select("avatar_url").eq("id", user.id).single(),
+  const [preferences, doctorClinicsRes, allClinicsRes] = await Promise.all([
     getUserPreferences(supabase, user.id),
     supabase
       .from("doctor_clinics")
@@ -27,7 +26,7 @@ export default async function DoctorSettingsPage() {
       .order("name"),
   ]);
 
-  const avatarUrl = (profileRow.data as { avatar_url: string | null } | null)?.avatar_url ?? null;
+  const avatarUrl = user.avatarUrl;
   const doctorClinics = doctorClinicsRes.data;
   const allClinics = (allClinicsRes.data as { id: string; name: string; city: string; area: string }[]) ?? [];
 

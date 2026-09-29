@@ -19,6 +19,7 @@ import {
 } from "@/services/appointments/service";
 import { searchParamsToObject, buildQueryString } from "@/lib/search-params";
 import { cn, pluralize } from "@/lib/utils";
+import { LiveRefresh } from "@/components/queue/live-refresh";
 
 export const metadata: Metadata = { title: "Appointments" };
 
@@ -67,15 +68,16 @@ export default async function StaffAppointmentsPage({ searchParams }: PageProps)
   const q = params.q?.trim() ?? "";
 
   const searching = q.length > 0;
-  const counts = view === "today" || searching ? await getStaffTodayCounts(supabase, clinic.id) : null;
-
-  const result = searching
-    ? await searchStaffAppointments(supabase, clinic.id, q, page)
-    : view === "today"
-      ? { items: await listStaffToday(supabase, clinic.id), total: 0, page: 1, pageSize: 15, totalPages: 1 }
-      : view === "upcoming"
-        ? await listStaffUpcoming(supabase, clinic.id, page)
-        : await listStaffPast(supabase, clinic.id, page);
+  const [counts, result] = await Promise.all([
+    view === "today" || searching ? getStaffTodayCounts(supabase, clinic.id) : Promise.resolve(null),
+    searching
+      ? searchStaffAppointments(supabase, clinic.id, q, page)
+      : view === "today"
+        ? listStaffToday(supabase, clinic.id).then((items) => ({ items, total: 0, page: 1, pageSize: 15, totalPages: 1 }))
+        : view === "upcoming"
+          ? listStaffUpcoming(supabase, clinic.id, page)
+          : listStaffPast(supabase, clinic.id, page),
+  ]);
 
   const buildHref = (nextView: View, nextPage: number) =>
     `/staff/appointments${buildQueryString({
@@ -147,27 +149,32 @@ export default async function StaffAppointmentsPage({ searchParams }: PageProps)
         ) : null}
       </p>
 
-      {result.items.length === 0 ? (
-        <EmptyState
-          icon={searching ? SearchX : view === "today" ? CalendarCheck2 : CalendarX2}
-          title={searching ? "No matching patients" : view === "today" ? "Nothing booked today" : view === "upcoming" ? "No upcoming appointments" : "No past appointments"}
-          description={
-            searching
-              ? "Try a different spelling — search matches patient names."
-              : "This list is generated from real bookings only."
-          }
-        />
-      ) : (
-        <div className="space-y-3">
-          {result.items.map((appointment) => (
-            <StaffAppointmentRow key={appointment.id} appointment={appointment} />
-          ))}
-        </div>
-      )}
+      <LiveRefresh
+        channelKey={`staff-appointments-${clinic.id}`}
+        filters={`appointments:clinic_id=eq.${clinic.id}`}
+      >
+        {result.items.length === 0 ? (
+          <EmptyState
+            icon={searching ? SearchX : view === "today" ? CalendarCheck2 : CalendarX2}
+            title={searching ? "No matching patients" : view === "today" ? "Nothing booked today" : view === "upcoming" ? "No upcoming appointments" : "No past appointments"}
+            description={
+              searching
+                ? "Try a different spelling — search matches patient names."
+                : "This list is generated from real bookings only."
+            }
+          />
+        ) : (
+          <div className="space-y-3">
+            {result.items.map((appointment) => (
+              <StaffAppointmentRow key={appointment.id} appointment={appointment} />
+            ))}
+          </div>
+        )}
 
-      {!searching && view !== "today" ? (
-        <Pagination page={result.page} totalPages={result.totalPages} buildHref={(nextPage) => buildHref(view, nextPage)} />
-      ) : null}
+        {!searching && view !== "today" ? (
+          <Pagination page={result.page} totalPages={result.totalPages} buildHref={(nextPage) => buildHref(view, nextPage)} />
+        ) : null}
+      </LiveRefresh>
     </div>
   );
 }

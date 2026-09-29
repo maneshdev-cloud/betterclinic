@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Check, ChevronDown, LogOut, Plus, RefreshCw, Settings, User } from "lucide-react";
+import { Check, ChevronDown, Loader2, LogOut, Plus, RefreshCw, Settings, User } from "lucide-react";
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { ROLE_LABELS, type Role } from "@/lib/constants";
+import { ROLE_LABELS, roleHomePath, type Role } from "@/lib/constants";
 import { signOutAction, switchRoleAction } from "@/app/(auth)/actions";
+import { useNavigationProgress } from "@/components/layout/navigation-progress";
 import { cn } from "@/lib/utils";
 
 interface UserMenuProps {
@@ -30,6 +31,9 @@ export function UserMenu({
   availableRoles = [],
 }: UserMenuProps) {
   const [pending, startTransition] = useTransition();
+  const [switchingRole, setSwitchingRole] = useState<Role | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+  const { startNavigation, stopNavigation } = useNavigationProgress();
 
   return (
     <DropdownMenu.Root>
@@ -73,24 +77,47 @@ export function UserMenu({
               </div>
               {availableRoles.map((r) => {
                 const isActive = r === role;
+                const isSelected = switchingRole === r;
                 return (
                   <DropdownMenu.Item
                     key={r}
                     disabled={isActive || pending}
                     className={cn(
                       itemClass,
-                      isActive ? "bg-accent/40 font-medium" : "hover:bg-accent"
+                      isActive ? "bg-accent/40 font-medium" : "hover:bg-accent",
+                      isSelected && "bg-primary/10 text-primary font-medium"
                     )}
-                    onSelect={() => {
-                      if (isActive) return;
+                    onSelect={(e) => {
+                      if (isActive || pending) {
+                        e.preventDefault();
+                        return;
+                      }
+                      setSwitchingRole(r);
+                      startNavigation(roleHomePath(r));
                       startTransition(async () => {
-                        await switchRoleAction(r);
+                        try {
+                          await switchRoleAction(r);
+                        } catch (err: any) {
+                          if (err?.digest?.startsWith("NEXT_REDIRECT") || err?.message === "NEXT_REDIRECT") {
+                            return;
+                          }
+                          setSwitchingRole(null);
+                          stopNavigation();
+                        }
                       });
                     }}
                   >
-                    <RefreshCw className={cn("h-3.5 w-3.5", isActive && "text-primary")} />
+                    {isSelected ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                    ) : (
+                      <RefreshCw className={cn("h-3.5 w-3.5", isActive && "text-primary")} />
+                    )}
                     <span className="flex-1">{ROLE_LABELS[r]}</span>
-                    {isActive ? <Check className="h-3.5 w-3.5 text-primary" /> : null}
+                    {isSelected ? (
+                      <span className="text-[10px] text-primary font-medium animate-pulse">Switching…</span>
+                    ) : isActive ? (
+                      <Check className="h-3.5 w-3.5 text-primary" />
+                    ) : null}
                   </DropdownMenu.Item>
                 );
               })}
@@ -115,9 +142,12 @@ export function UserMenu({
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 h-px bg-muted" />
           <DropdownMenu.Item
+            disabled={pending || signingOut}
             className={cn(itemClass, "text-destructive focus:bg-destructive/10 focus:text-destructive")}
             onSelect={(event) => {
               event.preventDefault();
+              setSigningOut(true);
+              startNavigation("/");
               startTransition(async () => {
                 try {
                   await signOutAction();
@@ -127,7 +157,12 @@ export function UserMenu({
               });
             }}
           >
-            <LogOut className="h-4 w-4" aria-hidden /> Sign out
+            {signingOut ? (
+              <Loader2 className="h-4 w-4 animate-spin text-destructive" aria-hidden />
+            ) : (
+              <LogOut className="h-4 w-4" aria-hidden />
+            )}
+            <span>{signingOut ? "Signing out…" : "Sign out"}</span>
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

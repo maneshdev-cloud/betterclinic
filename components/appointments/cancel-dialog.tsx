@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -28,20 +28,30 @@ export function CancelDialog({ open, onOpenChange, appointmentId }: CancelDialog
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const handleCancel = async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setPending(true);
     setError(null);
-    const result = await cancelAppointmentAction({ appointmentId, reason });
-    if (result.ok) {
-      toast.success("Appointment cancelled");
-      onOpenChange(false);
-      setReason("");
-      router.refresh();
-    } else {
-      setError(result.error ?? "The appointment could not be cancelled.");
+
+    try {
+      const result = await cancelAppointmentAction({ appointmentId, reason });
+      if (result.ok) {
+        toast.success("Appointment cancelled");
+        onOpenChange(false);
+        setReason("");
+        router.refresh();
+      } else {
+        setError(result.error ?? "The appointment could not be cancelled.");
+      }
+    } catch {
+      setError("Network or server failure while cancelling.");
+    } finally {
+      setPending(false);
+      isSubmittingRef.current = false;
     }
-    setPending(false);
   };
 
   return (

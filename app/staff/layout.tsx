@@ -5,7 +5,6 @@ import { requireRole } from "@/services/auth/service";
 import { getStaffClinicContext } from "@/services/clinics/service";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   if (!isSupabaseConfigured()) {

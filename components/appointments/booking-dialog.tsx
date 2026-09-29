@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarCheck } from "lucide-react";
+import { CalendarCheck, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -41,31 +41,42 @@ export function BookingDialog({
   const [visitReason, setVisitReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const reset = () => {
     setVisitReason("");
     setError(null);
     setPending(false);
+    isSubmittingRef.current = false;
   };
 
   const handleBook = async () => {
-    if (!selection) return;
+    if (!selection || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setPending(true);
     setError(null);
-    const result = await bookAppointmentAction({
-      slotId: selection.slotId,
-      visitReason,
-    });
-    if (result.ok && result.data) {
-      toast.success("Appointment booked", {
-        description: `${doctorName} · ${formatDateWithDay(selection.date)}, ${formatTimeString(selection.startTime)}`,
+
+    try {
+      const result = await bookAppointmentAction({
+        slotId: selection.slotId,
+        visitReason,
       });
-      onOpenChange(false);
-      reset();
-      router.push(`/patient/appointments/${result.data.appointmentId}`);
-    } else {
-      setError(result.error ?? "The appointment could not be booked.");
+      if (result.ok && result.data) {
+        toast.success("Appointment booked", {
+          description: `${doctorName} · ${formatDateWithDay(selection.date)}, ${formatTimeString(selection.startTime)}`,
+        });
+        onOpenChange(false);
+        reset();
+        router.push(`/patient/appointments/${result.data.appointmentId}`);
+      } else {
+        setError(result.error ?? "The appointment could not be booked.");
+        setPending(false);
+        isSubmittingRef.current = false;
+      }
+    } catch {
+      setError("Network or server failure while booking. Please try again.");
       setPending(false);
+      isSubmittingRef.current = false;
     }
   };
 

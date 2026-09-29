@@ -22,20 +22,22 @@ export function StaffAppointmentRow({ appointment }: { appointment: StaffAppoint
             {appointment.doctor_name}
             {appointment.doctor_qualification ? ` · ${appointment.doctor_qualification}` : ""}
           </p>
-          <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
-            {formatDateWithDay(appointment.appointment_date)}
-          </p>
-          <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4 shrink-0" aria-hidden />
-            {formatTimeString(appointment.start_time)} – {formatTimeString(appointment.end_time)}
-          </p>
-          <p className="max-w-xl truncate text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
+              {formatDateWithDay(appointment.appointment_date)}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-4 w-4 shrink-0" aria-hidden />
+              {formatTimeString(appointment.start_time)} – {formatTimeString(appointment.end_time)}
+            </span>
+          </div>
+          <p className="max-w-xl text-sm text-muted-foreground line-clamp-2 break-words">
             <span className="font-medium text-foreground/80">Reason:</span> {appointment.visit_reason}
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-2 lg:items-end">
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center lg:flex-col lg:items-end">
           <StaffAppointmentActions appointment={appointment} />
           <Link
             href={`/staff/appointments?focus=${appointment.id}`}

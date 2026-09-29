@@ -10,10 +10,15 @@ import { uuidSchema } from "@/lib/validation/auth";
 import { getStaffClinicContext } from "@/services/clinics/service";
 
 function revalidateQueueViews() {
+  revalidatePath("/patient");
   revalidatePath("/patient/queue");
-  revalidatePath("/doctor/queue");
-  revalidatePath("/staff/queue");
   revalidatePath("/patient/appointments");
+  revalidatePath("/doctor");
+  revalidatePath("/doctor/queue");
+  revalidatePath("/doctor/appointments");
+  revalidatePath("/staff");
+  revalidatePath("/staff/queue");
+  revalidatePath("/staff/appointments");
 }
 
 /**
