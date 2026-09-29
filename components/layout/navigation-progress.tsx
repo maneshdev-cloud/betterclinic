@@ -13,10 +13,10 @@ interface NavigationContextType {
 
 const NavigationContext = createContext<NavigationContextType>({
   pendingHref: null,
-  setPendingHref: () => {},
+  setPendingHref: () => { },
   isNavigating: false,
-  startNavigation: () => {},
-  stopNavigation: () => {},
+  startNavigation: () => { },
+  stopNavigation: () => { },
 });
 
 export function useNavigationProgress() {

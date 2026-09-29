@@ -141,10 +141,10 @@ export function AppShell({
     (userRole === "PATIENT"
       ? PATIENT_NAV
       : userRole === "DOCTOR"
-      ? DOCTOR_NAV
-      : userRole === "CLINIC_ADMIN"
-      ? ADMIN_NAV
-      : STAFF_NAV);
+        ? DOCTOR_NAV
+        : userRole === "CLINIC_ADMIN"
+          ? ADMIN_NAV
+          : STAFF_NAV);
 
   const header = (
     <div className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4">
