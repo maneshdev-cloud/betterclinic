@@ -12,6 +12,7 @@ import { AppointmentCardActions } from "@/components/appointments/appointment-ca
 import { createClient } from "@/lib/supabase/server";
 import { getAppointmentDetail } from "@/services/appointments/service";
 import { formatDateWithDay, formatINR, formatTimeString } from "@/lib/utils";
+import { LiveRefresh } from "@/components/queue/live-refresh";
 
 interface PageProps {
   params: { id: string };
@@ -30,6 +31,11 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
 
   return (
     <div className="page-container space-y-6 py-8">
+      <LiveRefresh
+        channelKey={`patient-appointment-${appointment.id}`}
+        filters={`appointments:id=eq.${appointment.id};appointment_status_history:appointment_id=eq.${appointment.id}`}
+        showIndicator
+      />
       <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
         <Link href="/patient/appointments" className="hover:underline">
           ← Back to appointments

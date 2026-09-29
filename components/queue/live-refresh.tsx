@@ -17,12 +17,14 @@ export function LiveRefresh({
   channelKey,
   filters,
   pollMs = 45000,
+  showIndicator = true,
   children,
 }: {
   channelKey: string;
   filters: string;
   pollMs?: number;
-  children: React.ReactNode;
+  showIndicator?: boolean;
+  children?: React.ReactNode;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<"connecting" | "live" | "reconnecting" | "polling">("connecting");
@@ -39,13 +41,40 @@ export function LiveRefresh({
 
     let cleanupRealtime: (() => void) | null = null;
     let timer: ReturnType<typeof setInterval> | undefined;
+    let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
+    let wasDisconnected = false;
+
+    // Debounced refresh to coalesce rapid bursts of database changes into a single server refresh
+    const debouncedRefresh = () => {
+      if (refreshTimeout) clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        router.refresh();
+      }, 200);
+    };
 
     const startPolling = () => {
       if (timer) return;
       timer = setInterval(() => {
-        if (document.visibilityState === "visible") router.refresh();
+        if (document.visibilityState === "visible") debouncedRefresh();
       }, pollMs);
     };
+
+    // Background synchronization: reconcile when tab regains focus or comes back online
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        debouncedRefresh();
+      }
+    };
+    const handleOnline = () => {
+      debouncedRefresh();
+    };
+    const handleFocus = () => {
+      debouncedRefresh();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("focus", handleFocus);
 
     try {
       const client = createClient();
@@ -59,17 +88,24 @@ export function LiveRefresh({
             table: spec.table,
             ...(spec.filter ? { filter: spec.filter } : {}),
           },
-          () => router.refresh()
+          () => debouncedRefresh()
         );
       }
       channel.subscribe((state) => {
         if (state === "SUBSCRIBED") {
           setStatus("live");
+          // Reconnection catch-up: if we recovered from a disconnect, refresh state immediately
+          if (wasDisconnected) {
+            debouncedRefresh();
+            wasDisconnected = false;
+          }
         } else if (state === "TIMED_OUT" || state === "CLOSED") {
           setStatus("reconnecting");
+          wasDisconnected = true;
           startPolling();
         } else if (state === "CHANNEL_ERROR") {
           setStatus("polling");
+          wasDisconnected = true;
           startPolling();
         }
       });
@@ -85,8 +121,16 @@ export function LiveRefresh({
     return () => {
       cleanupRealtime?.();
       if (timer) clearInterval(timer);
+      if (refreshTimeout) clearTimeout(refreshTimeout);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [channelKey, filters, pollMs, router]);
+
+  if (!showIndicator) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="space-y-4">

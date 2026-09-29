@@ -10,17 +10,12 @@ export default async function StaffSettingsPage() {
   const user = await requireRole(["RECEPTIONIST"], "/staff/settings");
   const supabase = await createClient();
 
-  const [profileRow, preferences] = await Promise.all([
-    supabase.from("profiles").select("avatar_url").eq("id", user.id).single(),
-    getUserPreferences(supabase, user.id),
-  ]);
-
-  const avatarUrl = (profileRow.data as { avatar_url: string | null } | null)?.avatar_url ?? null;
+  const preferences = await getUserPreferences(supabase, user.id);
 
   return (
     <SettingsView
       userId={user.id}
-      avatarUrl={avatarUrl}
+      avatarUrl={user.avatarUrl}
       fullName={user.fullName}
       email={user.email}
       phone={user.phone}

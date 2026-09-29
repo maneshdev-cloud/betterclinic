@@ -247,16 +247,24 @@ export async function getDoctorProfile(
   };
 }
 
+let cachedSpecializations: { timestamp: number; data: { id: string; name: string }[] } | null = null;
+const SPEC_CACHE_TTL_MS = 5 * 60 * 1000;
+
 export async function listSpecializations(
   client: SupabaseClient
 ): Promise<{ id: string; name: string }[]> {
+  if (cachedSpecializations && Date.now() - cachedSpecializations.timestamp < SPEC_CACHE_TTL_MS) {
+    return cachedSpecializations.data;
+  }
   const { data, error } = await client
     .from("specializations")
     .select("id, name")
     .order("name")
     .limit(100);
   if (error) throw error;
-  return (data ?? []) as { id: string; name: string }[];
+  const result = (data ?? []) as { id: string; name: string }[];
+  cachedSpecializations = { timestamp: Date.now(), data: result };
+  return result;
 }
 
 export async function listDoctorReviews(

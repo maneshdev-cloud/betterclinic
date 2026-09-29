@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCircle2, UserX } from "lucide-react";
+import { CheckCircle2, UserX, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,37 +21,83 @@ export function StaffAppointmentActions({ appointment }: { appointment: StaffApp
   const router = useRouter();
   const [noShowOpen, setNoShowOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"confirm" | "noShow" | null>(null);
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isBusyRef = useRef(false);
 
-  const canConfirm = appointment.status === "BOOKED";
-  const canNoShow = ["BOOKED", "CONFIRMED", "WAITING", "CALLED"].includes(appointment.status);
+  const effectiveStatus = optimisticStatus ?? appointment.status;
+  const canConfirm = effectiveStatus === "BOOKED";
+  const canNoShow = ["BOOKED", "CONFIRMED", "WAITING", "CALLED"].includes(effectiveStatus);
 
   const handleConfirm = async () => {
+    if (isBusyRef.current) return;
+    isBusyRef.current = true;
     setPendingAction("confirm");
+    setOptimisticStatus("CONFIRMED");
     setError(null);
-    const result = await confirmAppointmentAction(appointment.id);
-    if (result.ok) {
-      toast.success(`Confirmed appointment for ${appointment.patient_name}`);
-      router.refresh();
-    } else {
-      setError(result.error ?? "Could not confirm.");
+
+    try {
+      const result = await confirmAppointmentAction(appointment.id);
+      if (result.ok) {
+        toast.success(`Confirmed appointment for ${appointment.patient_name}`);
+        router.refresh();
+      } else {
+        // Rollback optimistic state
+        setOptimisticStatus(null);
+        setError(result.error ?? "Could not confirm.");
+        toast.error(result.error ?? "Could not confirm appointment.");
+      }
+    } catch {
+      setOptimisticStatus(null);
+      setError("Network or server failure while confirming.");
+      toast.error("Network or server failure while confirming.");
+    } finally {
+      setPendingAction(null);
+      isBusyRef.current = false;
     }
-    setPendingAction(null);
   };
 
   const handleNoShow = async () => {
+    if (isBusyRef.current) return;
+    isBusyRef.current = true;
     setPendingAction("noShow");
     setError(null);
-    const result = await markNoShowAction(appointment.id);
-    if (result.ok) {
-      toast.success(`Marked ${appointment.patient_name} as no-show`);
-      setNoShowOpen(false);
-      router.refresh();
-    } else {
-      setError(result.error ?? "Could not mark no-show.");
+
+    try {
+      const result = await markNoShowAction(appointment.id);
+      if (result.ok) {
+        setOptimisticStatus("NO_SHOW");
+        toast.success(`Marked ${appointment.patient_name} as no-show`);
+        setNoShowOpen(false);
+        router.refresh();
+      } else {
+        setError(result.error ?? "Could not mark no-show.");
+        toast.error(result.error ?? "Could not mark no-show.");
+      }
+    } catch {
+      setError("Network or server failure while updating no-show.");
+      toast.error("Network or server failure while updating no-show.");
+    } finally {
+      setPendingAction(null);
+      isBusyRef.current = false;
     }
-    setPendingAction(null);
   };
+
+  if (optimisticStatus === "CONFIRMED") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Confirmed
+      </span>
+    );
+  }
+
+  if (optimisticStatus === "NO_SHOW") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
+        <UserX className="h-3.5 w-3.5" aria-hidden /> No-show
+      </span>
+    );
+  }
 
   if (!canConfirm && !canNoShow) return null;
 

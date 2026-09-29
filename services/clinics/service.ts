@@ -292,15 +292,23 @@ export async function listClinicReviews(
   }));
 }
 
-/** Distinct cities where active clinics exist (for the filter dropdown). */
-export async function listClinicCities(client: SupabaseClient): Promise<string[]> {  const { data, error } = await client
+let cachedCities: { timestamp: number; cities: string[] } | null = null;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+/** Distinct cities where active clinics exist (for the filter dropdown, cached with 5m TTL). */
+export async function listClinicCities(client: SupabaseClient): Promise<string[]> {
+  if (cachedCities && Date.now() - cachedCities.timestamp < CACHE_TTL_MS) {
+    return cachedCities.cities;
+  }
+  const { data, error } = await client
     .from("clinics")
     .select("city")
     .eq("is_active", true)
     .limit(1000);
   if (error) throw error;
-  const cities = Array.from(new Set(((data ?? []) as { city: string }[]).map((row) => row.city)));
-  return cities.sort();
+  const cities = Array.from(new Set(((data ?? []) as { city: string }[]).map((row) => row.city))).sort();
+  cachedCities = { timestamp: Date.now(), cities };
+  return cities;
 }
 
 /** Distinct areas within a city (for the dependent filter dropdown). */
@@ -316,10 +324,11 @@ export async function listClinicAreas(client: SupabaseClient, city: string): Pro
   return areas.sort();
 }
 
-/** The clinic a staff member (receptionist/admin) belongs to. */
-export async function getStaffClinicContext(
+/** The clinic a staff member (receptionist/admin) belongs to. Cached per server request. */
+import { cache } from "react";
+export const getStaffClinicContext = cache(async (
   userId: string
-): Promise<Pick<Clinic, "id" | "name" | "city"> | null> {
+): Promise<Pick<Clinic, "id" | "name" | "city"> | null> => {
   const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   const { data } = await supabase
@@ -330,7 +339,7 @@ export async function getStaffClinicContext(
     .maybeSingle();
   const row = data as unknown as { clinic: Pick<Clinic, "id" | "name" | "city"> } | null;
   return row?.clinic ?? null;
-}
+});
 
 export interface ClinicInviteCodes {
   staffCode: string | null;

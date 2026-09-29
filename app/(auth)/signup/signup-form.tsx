@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -79,13 +80,15 @@ export function SignUpForm({
   const isDoctor = role === "DOCTOR";
   const isStaff = role === "RECEPTIONIST" || role === "CLINIC_ADMIN";
   const effectiveRole = isStaff ? staffRole : role;
+  const router = useRouter();
   const isRedirecting = Boolean(state.redirectUrl);
 
   useEffect(() => {
     if (state.redirectUrl) {
-      window.location.replace(state.redirectUrl);
+      router.replace(state.redirectUrl);
+      router.refresh();
     }
-  }, [state.redirectUrl]);
+  }, [state.redirectUrl, router]);
 
   async function handleCheckDuplicate() {
     if (newClinicName.trim().length < 2) return;
@@ -175,12 +178,12 @@ export function SignUpForm({
         </TabsList>
       </Tabs>
 
-      <form action={formAction} className="mt-5 space-y-4">
-        <input type="hidden" name="role" value={effectiveRole} />
+      <form action={formAction} className="mt-5 space-y-4" id="signup-form">
+        <input type="hidden" id="signup-role" name="role" value={effectiveRole} />
 
         {isStaff ? (
           <div className="space-y-1.5">
-            <Label>Staff role</Label>
+            <span className="text-sm font-medium leading-none text-foreground block">Staff role</span>
             <div className="grid grid-cols-2 gap-2">
               {(["RECEPTIONIST", "CLINIC_ADMIN"] as StaffRole[]).map((r) => (
                 <button
@@ -488,6 +491,7 @@ export function SignUpForm({
                 <Label htmlFor="new_clinic_name" className="text-xs">Clinic Name</Label>
                 <Input
                   id="new_clinic_name"
+                  name="new_clinic_name"
                   placeholder="e.g. Apex Health Clinic"
                   value={newClinicName}
                   onChange={(e) => {
@@ -502,6 +506,7 @@ export function SignUpForm({
                 <Label htmlFor="new_clinic_city" className="text-xs">City</Label>
                 <Input
                   id="new_clinic_city"
+                  name="new_clinic_city"
                   placeholder="e.g. Pune"
                   value={newClinicCity}
                   onChange={(e) => {
@@ -552,6 +557,7 @@ export function SignUpForm({
                 <Label htmlFor="new_clinic_area" className="text-xs">Area / Locality</Label>
                 <Input
                   id="new_clinic_area"
+                  name="new_clinic_area"
                   placeholder="e.g. Kothrud"
                   value={newClinicArea}
                   onChange={(e) => setNewClinicArea(e.target.value)}
@@ -562,6 +568,7 @@ export function SignUpForm({
                 <Label htmlFor="new_clinic_address" className="text-xs">Street Address</Label>
                 <Input
                   id="new_clinic_address"
+                  name="new_clinic_address"
                   placeholder="e.g. Shop 4, Mayur Colony"
                   value={newClinicAddress}
                   onChange={(e) => setNewClinicAddress(e.target.value)}

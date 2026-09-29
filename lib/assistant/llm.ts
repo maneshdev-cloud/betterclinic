@@ -16,6 +16,8 @@ import type { AssistantContext } from "@/lib/assistant/fallback";
  * - max_tokens is hard-capped (~350) to prevent runaway generation.
  */
 
+import { withRetry } from "@/lib/network/with-retry";
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -91,32 +93,36 @@ export async function generateLlmReply(
   const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
-    const response = await fetch(`${env.ai.baseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${env.ai.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: env.ai.model,
-        // Low temperature: sticks tightly to context without improvising
-        temperature: 0.15,
-        // Hard cap max_tokens to prevent runaway generations
-        max_tokens: 350,
-        messages: [
-          { role: "system", content: `${SYSTEM_PROMPT}\n\n${styleInstruction}` },
-          { role: "system", content: `PATIENT CONTEXT (real database records):\n${contextToPrompt(context)}` },
-          // Re-inject safety instructions
-          {
-            role: "system",
-            content: "SAFETY REMINDER: Never diagnose or prescribe. Never suggest altering doses. Only refer to entities present in PATIENT CONTEXT.",
+    const response = await withRetry(
+      () =>
+        fetch(`${env.ai.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${env.ai.apiKey}`,
           },
-          ...cappedHistory,
-          { role: "user", content: message },
-        ],
-      }),
-      signal: controller.signal,
-    });
+          body: JSON.stringify({
+            model: env.ai.model,
+            // Low temperature: sticks tightly to context without improvising
+            temperature: 0.15,
+            // Hard cap max_tokens to prevent runaway generations
+            max_tokens: 350,
+            messages: [
+              { role: "system", content: `${SYSTEM_PROMPT}\n\n${styleInstruction}` },
+              { role: "system", content: `PATIENT CONTEXT (real database records):\n${contextToPrompt(context)}` },
+              // Re-inject safety instructions
+              {
+                role: "system",
+                content: "SAFETY REMINDER: Never diagnose or prescribe. Never suggest altering doses. Only refer to entities present in PATIENT CONTEXT.",
+              },
+              ...cappedHistory,
+              { role: "user", content: message },
+            ],
+          }),
+          signal: controller.signal,
+        }),
+      { retries: 2, backoffs: [300, 800] }
+    );
 
     if (!response.ok) {
       console.warn(`[Groq AI] API responded with status ${response.status}: ${response.statusText}`);

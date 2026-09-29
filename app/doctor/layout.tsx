@@ -4,7 +4,6 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { requireRole } from "@/services/auth/service";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default async function DoctorLayout({ children }: { children: React.ReactNode }) {
   if (!isSupabaseConfigured()) {

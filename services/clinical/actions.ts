@@ -24,6 +24,8 @@ function revalidateClinicalViews(consultationId?: string) {
   if (consultationId) {
     revalidatePath(`/doctor/consultations/${consultationId}`);
   }
+  revalidatePath("/doctor");
+  revalidatePath("/patient");
   revalidatePath("/doctor/consultations");
   revalidatePath("/doctor/patients");
   revalidatePath("/patient/prescriptions");

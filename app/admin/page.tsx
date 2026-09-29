@@ -35,7 +35,7 @@ export default async function AdminDashboard() {
 
   const supabase = await createClient();
   const [{ data: clinicRow }, { data: hours }, inviteCodes, quickStats] = await Promise.all([
-    supabase.from("clinics").select("*").eq("id", clinic.id).single(),
+    supabase.from("clinics").select("name, city, area").eq("id", clinic.id).single(),
     supabase.from("clinic_hours").select("*").eq("clinic_id", clinic.id).order("day_of_week"),
     getClinicInviteCodes(clinic.id),
     getClinicAnalytics(supabase, clinic.id, {}),

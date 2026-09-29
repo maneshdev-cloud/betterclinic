@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Stethoscope } from "lucide-react";
+import { Menu, Stethoscope, Loader2 } from "lucide-react";
+import { useNavigationProgress } from "@/components/layout/navigation-progress";
 import {
   Sheet,
   SheetContent,
@@ -48,21 +49,35 @@ function NavLink({
   active: boolean;
   onNavigate?: () => void;
 }) {
+  const { pendingHref } = useNavigationProgress();
+  const isPending = pendingHref === item.href;
+
   return (
     <Link
       href={item.href}
+      prefetch={true}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
+      aria-busy={isPending ? "true" : undefined}
       className={cn(
-        "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
+        "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors relative",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        active
-          ? "bg-secondary text-secondary-foreground"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+        isPending && "pointer-events-none bg-primary/10 text-primary font-semibold",
+        !isPending && active && "bg-secondary text-secondary-foreground",
+        !isPending && !active && "text-muted-foreground hover:bg-muted hover:text-foreground"
       )}
     >
-      <item.icon className="h-4 w-4 shrink-0" aria-hidden />
-      {item.label}
+      {isPending ? (
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
+      ) : (
+        <item.icon className="h-4 w-4 shrink-0" aria-hidden />
+      )}
+      <span className="flex-1 truncate">{item.label}</span>
+      {isPending ? (
+        <span className="text-[10px] uppercase font-bold text-primary tracking-wider animate-pulse">
+          Loading
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -77,7 +92,7 @@ function NavSections({
   onNavigate?: () => void;
 }) {
   return (
-    <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4" aria-label="Main navigation">
+    <nav className="flex-1 space-y-5 overflow-y-auto no-scrollbar px-3 py-4" aria-label="Main navigation">
       {sections.map((section) => (
         <div key={section.title}>
           <p className="mb-1.5 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -135,8 +150,8 @@ export function AppShell({
           >
             <Menu className="h-5 w-5" />
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0">
-            <SheetHeader className="border-b">
+          <SheetContent side="left" className="flex flex-col w-72 p-0 h-full">
+            <SheetHeader className="border-b shrink-0">
               <SheetTitle className="flex items-center gap-2 text-base">
                 <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
                   <Stethoscope className="h-3.5 w-3.5 text-primary-foreground" aria-hidden />

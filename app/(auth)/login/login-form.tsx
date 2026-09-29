@@ -7,20 +7,23 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { signInAction, type FormState } from "../actions";
 
 const initialState: FormState = {};
 
 export function LoginForm({ nextPath, disabled }: { nextPath: string | null; disabled: boolean }) {
+  const router = useRouter();
   const [state, formAction, pending] = useFormState(signInAction, initialState);
   const isRedirecting = Boolean(state.redirectUrl);
 
   useEffect(() => {
     if (state.redirectUrl) {
-      window.location.replace(state.redirectUrl);
+      router.replace(state.redirectUrl);
+      router.refresh();
     }
-  }, [state.redirectUrl]);
+  }, [state.redirectUrl, router]);
 
   return (
     <div className="rounded-lg border bg-card p-6 shadow-sm">
@@ -42,8 +45,8 @@ export function LoginForm({ nextPath, disabled }: { nextPath: string | null; dis
         </Alert>
       ) : null}
 
-      <form action={formAction} className="mt-5 space-y-4">
-        {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
+      <form action={formAction} className="mt-5 space-y-4" id="login-form">
+        {nextPath ? <input type="hidden" id="login-next" name="next" value={nextPath} /> : null}
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
           <Input

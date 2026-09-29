@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Toaster } from "@/components/ui/sonner";
 import { BfcacheHandler } from "@/components/shared/bfcache-handler";
+import { ConnectivityBanner } from "@/components/shared/connectivity-banner";
+import { Suspense } from "react";
+import { NavigationProvider } from "@/components/layout/navigation-progress";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -36,9 +39,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen">
-        <BfcacheHandler />
-        {children}
-        <Toaster />
+        <Suspense fallback={null}>
+          <NavigationProvider>
+            <ConnectivityBanner />
+            <BfcacheHandler />
+            {children}
+            <Toaster />
+          </NavigationProvider>
+        </Suspense>
       </body>
     </html>
   );

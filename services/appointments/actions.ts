@@ -8,9 +8,16 @@ import type { ActionResult } from "@/services/availability/actions";
 import { bookAppointmentSchema, cancelSchema, rescheduleSchema } from "@/lib/validation/appointments";
 
 function revalidateAppointmentViews() {
+  revalidatePath("/patient");
   revalidatePath("/patient/appointments");
-  revalidatePath("/staff/appointments");
+  revalidatePath("/patient/queue");
   revalidatePath("/patient/doctors");
+  revalidatePath("/doctor");
+  revalidatePath("/doctor/appointments");
+  revalidatePath("/doctor/queue");
+  revalidatePath("/staff");
+  revalidatePath("/staff/appointments");
+  revalidatePath("/staff/queue");
 }
 
 /**

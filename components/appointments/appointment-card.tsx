@@ -34,14 +34,17 @@ export function AppointmentCard({ appointment, actions }: AppointmentCardProps) 
             ) : null}
           </p>
 
-          <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
-            {formatDateWithDay(appointment.appointment_date)}
-          </p>
-          <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4 shrink-0" aria-hidden />
-            {formatTimeString(appointment.start_time)} – {formatTimeString(appointment.end_time)}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
+              {formatDateWithDay(appointment.appointment_date)}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-4 w-4 shrink-0" aria-hidden />
+              {formatTimeString(appointment.start_time)} – {formatTimeString(appointment.end_time)}
+            </span>
+          </div>
+
           <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4 shrink-0" aria-hidden />
             {appointment.clinic_name}
@@ -49,9 +52,9 @@ export function AppointmentCard({ appointment, actions }: AppointmentCardProps) 
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+        <div className="flex shrink-0 flex-col gap-2 sm:items-end w-full sm:w-auto">
           {actions}
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
             <Link href={`/patient/appointments/${appointment.id}`}>View details</Link>
           </Button>
         </div>
