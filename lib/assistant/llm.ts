@@ -105,8 +105,8 @@ export async function generateLlmReply(
             model: env.ai.model,
             // Low temperature: sticks tightly to context without improvising
             temperature: 0.15,
-            // Hard cap max_tokens to prevent runaway generations
-            max_tokens: 350,
+            // Cap max_tokens to prevent runaway generations while allowing reasoning models headroom
+            max_tokens: 650,
             messages: [
               { role: "system", content: `${SYSTEM_PROMPT}\n\n${styleInstruction}` },
               { role: "system", content: `PATIENT CONTEXT (real database records):\n${contextToPrompt(context)}` },
@@ -130,10 +130,11 @@ export async function generateLlmReply(
     }
 
     const payload = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
+      choices?: { message?: { content?: string; reasoning?: string } }[];
     };
 
-    const content = payload.choices?.[0]?.message?.content?.trim();
+    const choice = payload.choices?.[0]?.message;
+    const content = (choice?.content && choice.content.trim().length > 0 ? choice.content : choice?.reasoning)?.trim();
     return content && content.length > 0 ? content : null;
   } catch (error) {
     console.warn("[Groq AI] Call failed or timed out:", error);
