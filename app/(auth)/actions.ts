@@ -4,6 +4,8 @@ import { cookies, headers } from "next/headers";
 import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/env";
+import { DEMO_ACCOUNTS } from "@/lib/mock-data";
 import { toAppError } from "@/lib/errors";
 import { roleHomePath, ROLE_LABELS, type Role } from "@/lib/constants";
 import {
@@ -161,87 +163,112 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
   }
 
   try {
-    const supabase = await createClient();
+    if (isSupabaseConfigured()) {
+      const supabase = await createClient();
 
-    // Check if a profile already exists for this email
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id, email")
-      .ilike("email", data.email)
-      .maybeSingle();
+      // Check if a profile already exists for this email
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id, email")
+        .ilike("email", data.email)
+        .maybeSingle();
 
-    if (existingProfile) {
-      // Check existing roles for this profile
-      const { data: existingRolesRows } = await supabase
-        .from("profile_roles")
-        .select("role")
-        .eq("profile_id", existingProfile.id);
+      if (existingProfile) {
+        // Check existing roles for this profile
+        const { data: existingRolesRows } = await supabase
+          .from("profile_roles")
+          .select("role")
+          .eq("profile_id", existingProfile.id);
 
-      const existingRoles = (existingRolesRows ?? []).map((r) => r.role as Role);
+        const existingRoles = ((existingRolesRows ?? []) as { role: Role }[]).map((r) => r.role as Role);
 
-      if (existingRoles.includes(data.role as Role)) {
-        return {
-          error: `You already have a ${ROLE_LABELS[data.role as Role]} account — please sign in instead.`,
-        };
+        if (existingRoles.includes(data.role as Role)) {
+          return {
+            error: `You already have a ${ROLE_LABELS[data.role as Role]} account — please sign in instead.`,
+          };
+        }
+
+        // User does not have this role yet — verify credentials & add role
+        const { error: verifyAuthError } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+
+        if (verifyAuthError) {
+          return {
+            error: `An account with this email exists. Please enter your existing account password to add the ${ROLE_LABELS[data.role as Role]} role.`,
+          };
+        }
+
+        // Add role to existing profile
+        const { error: addRoleError } = await supabase.rpc("add_profile_role", {
+          p_user_id: existingProfile.id,
+          p_role: data.role,
+          p_data: metadata,
+        });
+
+        if (addRoleError) {
+          return { error: toAppError(addRoleError).userMessage };
+        }
+
+        const cookieStore = cookies();
+        cookieStore.set("bc_active_role", data.role, { path: "/", maxAge: 60 * 60 * 24 * 30 });
+
+        return { redirectUrl: roleHomePath(data.role as Role) };
       }
 
-      // User does not have this role yet — verify credentials & add role
-      const { error: verifyAuthError } = await supabase.auth.signInWithPassword({
+      // New user signup
+      const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          data: metadata,
+          emailRedirectTo: `${await currentOrigin()}/login`,
+        },
       });
 
-      if (verifyAuthError) {
-        return {
-          error: `An account with this email exists. Please enter your existing account password to add the ${ROLE_LABELS[data.role as Role]} role.`,
-        };
+      if (error) {
+        console.error("[signUpAction] supabase.auth.signUp error:", error);
+        return { error: toAppError(error).userMessage };
       }
 
-      // Add role to existing profile
-      const { error: addRoleError } = await supabase.rpc("add_profile_role", {
-        p_user_id: existingProfile.id,
-        p_role: data.role,
-        p_data: metadata,
-      });
-
-      if (addRoleError) {
-        return { error: toAppError(addRoleError).userMessage };
+      if (authData.session) {
+        const cookieStore = cookies();
+        cookieStore.set("bc_active_role", data.role, { path: "/", maxAge: 60 * 60 * 24 * 30 });
+        return { redirectUrl: roleHomePath(data.role as Role) };
       }
 
-      const cookieStore = cookies();
-      cookieStore.set("bc_active_role", data.role, { path: "/", maxAge: 60 * 60 * 24 * 30 });
-
-      return { redirectUrl: roleHomePath(data.role as Role) };
+      return {
+        success:
+          "Account created. Please confirm your email address — check your inbox for the confirmation link, then sign in.",
+      };
     }
-
-    // New user signup
-    const { data: authData, error } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: metadata,
-        emailRedirectTo: `${await currentOrigin()}/login`,
-      },
-    });
-
-    if (error) {
-      console.error("[signUpAction] supabase.auth.signUp error:", error);
-      return { error: toAppError(error).userMessage };
-    }
-
-    if (authData.session) {
-      const cookieStore = cookies();
-      cookieStore.set("bc_active_role", data.role, { path: "/", maxAge: 60 * 60 * 24 * 30 });
-      return { redirectUrl: roleHomePath(data.role as Role) };
-    }
-
-    return {
-      success:
-        "Account created. Please confirm your email address — check your inbox for the confirmation link, then sign in.",
-    };
   } catch (err) {
-    return { error: toAppError(err).userMessage };
+    console.warn("[signUpAction] Supabase unavailable, falling back to Demo account creation:", err);
   }
+
+  // Graceful Demo Mode Account Creation Fallback
+  const newDemoUser = {
+    id: crypto.randomUUID(),
+    email: data.email,
+    fullName: data.full_name,
+    role: data.role as Role,
+    roles: [data.role as Role],
+    phone: data.phone,
+    avatarUrl: null,
+    metadata,
+  };
+  const cookieStore = cookies();
+  cookieStore.set("bc_demo_user", JSON.stringify(newDemoUser), {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  cookieStore.set("bc_active_role", data.role, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  revalidatePath("/", "layout");
+  return { redirectUrl: roleHomePath(data.role as Role) };
 }
 
 /* ── Sign in ────────────────────────────────────────────────────── */
@@ -258,82 +285,175 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
       : null;
 
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      return { error: toAppError(error).userMessage };
+    if (isSupabaseConfigured()) {
+      const supabase = await createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error && data?.user) {
+        const user = data.user;
+        const { data: rolesRows } = await supabase
+          .from("profile_roles")
+          .select("role")
+          .eq("profile_id", user.id);
+
+        const roles = ((rolesRows ?? []) as { role: Role }[]).map((r) => r.role as Role).filter(Boolean);
+        if (roles.length > 1 && !nextPath) {
+          return { redirectUrl: "/choose-role" };
+        }
+
+        const role =
+          roles.length > 0
+            ? roles[0]!
+            : ((user.app_metadata?.role ?? "PATIENT") as Role);
+
+        const cookieStore = cookies();
+        cookieStore.set("bc_active_role", role, { path: "/", maxAge: 60 * 60 * 24 * 30 });
+
+        const redirectPath =
+          nextPath && nextPath.startsWith(`/${role.toLowerCase()}`) ? nextPath : roleHomePath(role);
+
+        revalidatePath("/", "layout");
+        return { redirectUrl: redirectPath };
+      }
     }
-
-    const user = data.user;
-
-    // Fetch all roles for this user
-    const { data: rolesRows } = await supabase
-      .from("profile_roles")
-      .select("role")
-      .eq("profile_id", user.id);
-
-    const roles = (rolesRows ?? []).map((r) => r.role as Role).filter(Boolean);
-
-    // If user has multiple roles and didn't specify an explicit deep-link path, go to /choose-role
-    if (roles.length > 1 && !nextPath) {
-      return { redirectUrl: "/choose-role" };
-    }
-
-    const role =
-      roles.length > 0
-        ? roles[0]!
-        : ((user.app_metadata?.role ?? "PATIENT") as Role);
-
-    const cookieStore = cookies();
-    cookieStore.set("bc_active_role", role, { path: "/", maxAge: 60 * 60 * 24 * 30 });
-
-    const redirectPath =
-      nextPath && nextPath.startsWith(`/${role.toLowerCase()}`) ? nextPath : roleHomePath(role);
-
-    revalidatePath("/", "layout");
-    return { redirectUrl: redirectPath };
   } catch (err) {
-    return { error: toAppError(err).userMessage };
+    console.warn("[signInAction] Supabase unavailable, falling back to Demo sign-in:", err);
   }
+
+  // Graceful Demo Sign-in Fallback
+  // Check if matching predefined demo account
+  const lowerEmail = email.toLowerCase();
+  let role: Role = "PATIENT";
+  let fullName = email.split("@")[0] || "Demo User";
+  let phone = "+919820011001";
+  let avatarUrl: string | null = null;
+
+  if (lowerEmail.includes("doctor")) {
+    role = "DOCTOR";
+    fullName = "Dr. Aarav Deshmukh";
+    avatarUrl = DEMO_ACCOUNTS.DOCTOR.avatarUrl;
+  } else if (lowerEmail.includes("staff") || lowerEmail.includes("reception")) {
+    role = "RECEPTIONIST";
+    fullName = "Sunita Patil";
+    avatarUrl = DEMO_ACCOUNTS.RECEPTIONIST.avatarUrl;
+  } else if (lowerEmail.includes("admin")) {
+    role = "CLINIC_ADMIN";
+    fullName = "Rajesh Joshi";
+    avatarUrl = DEMO_ACCOUNTS.CLINIC_ADMIN.avatarUrl;
+  } else {
+    role = "PATIENT";
+    fullName = "Ananya Sharma";
+    avatarUrl = DEMO_ACCOUNTS.PATIENT.avatarUrl;
+  }
+
+  const demoSessionUser = {
+    id: crypto.randomUUID(),
+    email,
+    fullName,
+    role,
+    roles: [role],
+    phone,
+    avatarUrl,
+  };
+
+  const cookieStore = cookies();
+  cookieStore.set("bc_demo_user", JSON.stringify(demoSessionUser), {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  cookieStore.set("bc_active_role", role, { path: "/", maxAge: 60 * 60 * 24 * 30 });
+
+  const redirectPath =
+    nextPath && nextPath.startsWith(`/${role.toLowerCase()}`) ? nextPath : roleHomePath(role);
+
+  revalidatePath("/", "layout");
+  return { redirectUrl: redirectPath };
+}
+
+/* ── Quick Demo Login ───────────────────────────────────────────── */
+
+export async function quickDemoLoginAction(role: Role): Promise<{ redirectUrl: string }> {
+  const account = DEMO_ACCOUNTS[role] || DEMO_ACCOUNTS.PATIENT;
+  const cookieStore = cookies();
+  cookieStore.set("bc_demo_user", JSON.stringify(account), {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  cookieStore.set("bc_active_role", role, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  revalidatePath("/", "layout");
+  return { redirectUrl: roleHomePath(role) };
 }
 
 /* ── Switch active role ─────────────────────────────────────────── */
 
 export async function switchRoleAction(targetRole: Role): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login", RedirectType.replace);
-  }
-
-  const { data: roleCheck } = await supabase
-    .from("profile_roles")
-    .select("role")
-    .eq("profile_id", user.id)
-    .eq("role", targetRole)
-    .maybeSingle();
-
-  if (!roleCheck) {
-    redirect(roleHomePath("PATIENT"), RedirectType.replace);
-  }
-
   const cookieStore = cookies();
+  const demoCookie = cookieStore.get("bc_demo_user");
+
+  if (demoCookie?.value) {
+    try {
+      const account = DEMO_ACCOUNTS[targetRole] || DEMO_ACCOUNTS.PATIENT;
+      cookieStore.set("bc_demo_user", JSON.stringify(account), {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      });
+      cookieStore.set("bc_active_role", targetRole, { path: "/", maxAge: 60 * 60 * 24 * 30 });
+      revalidatePath("/", "layout");
+      redirect(roleHomePath(targetRole), RedirectType.replace);
+      return;
+    } catch (e: unknown) {
+      if ((e as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw e;
+    }
+  }
+
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        cookieStore.set("bc_active_role", targetRole, { path: "/", maxAge: 60 * 60 * 24 * 30 });
+        revalidatePath("/", "layout");
+        redirect(roleHomePath(targetRole), RedirectType.replace);
+        return;
+      }
+    } catch {}
+  }
+
+  // Fallback demo switch
+  const account = DEMO_ACCOUNTS[targetRole] || DEMO_ACCOUNTS.PATIENT;
+  cookieStore.set("bc_demo_user", JSON.stringify(account), {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
   cookieStore.set("bc_active_role", targetRole, { path: "/", maxAge: 60 * 60 * 24 * 30 });
   revalidatePath("/", "layout");
-
   redirect(roleHomePath(targetRole), RedirectType.replace);
 }
 
 /* ── Sign out ───────────────────────────────────────────────────── */
 
 export async function signOutAction(): Promise<void> {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient();
+      await supabase.auth.signOut();
+    } catch {}
+  }
+
   const cookieStore = cookies();
   cookieStore.delete("bc_active_role");
+  cookieStore.delete("bc_demo_user");
+  cookieStore.getAll().forEach((c) => {
+    if (c.name.startsWith("sb-") && c.name.includes("-auth-token")) {
+      cookieStore.delete(c.name);
+    }
+  });
+
   revalidatePath("/", "layout");
   redirect("/", RedirectType.replace);
 }

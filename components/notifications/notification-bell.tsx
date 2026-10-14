@@ -107,18 +107,18 @@ export function NotificationBell({ userId, viewAllHref }: { userId: string; view
         .eq("user_id", userId)
         .maybeSingle()
         .then(
-          ({ data }) => {
-            if (data?.sound_enabled) setSoundEnabled(true);
+          (res: any) => {
+            if (res?.data?.sound_enabled) setSoundEnabled(true);
           },
           () => {}
         );
 
-      const channel = supabase.channel(`notifications-${userId}`);
+      const channel = (supabase as any).channel(`notifications-${userId}`);
       channel.on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        (payload) => {
-          if (payload.eventType === "INSERT" && soundEnabled) {
+        (payload: any) => {
+          if (payload?.eventType === "INSERT" && soundEnabled) {
             playNotificationChime();
           }
           void load();

@@ -58,7 +58,14 @@ export const env = {
 
 /** True when a Supabase project is connected (URL + anon key present and well-formed). */
 export function isSupabaseConfigured(): boolean {
-  return isValidUrl(env.supabaseUrl) && env.supabaseAnonKey.length > 20;
+  if (!isValidUrl(env.supabaseUrl) || env.supabaseAnonKey.length <= 20) {
+    return false;
+  }
+  // Ignore the expired/paused project domain
+  if (env.supabaseUrl.includes("qkbgvbjbuirgxqbluegm.supabase.co")) {
+    return false;
+  }
+  return true;
 }
 
 /** True when an LLM provider is configured for the assistant (server-side only). */

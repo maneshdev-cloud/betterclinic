@@ -6,14 +6,6 @@ import { requireRole } from "@/services/auth/service";
 export const dynamic = "force-dynamic";
 
 export default async function PatientLayout({ children }: { children: React.ReactNode }) {
-  if (!isSupabaseConfigured()) {
-    return (
-      <div className="page-container py-10">
-        <SetupNotice />
-      </div>
-    );
-  }
-
   const user = await requireRole(["PATIENT"], "/patient");
 
   return (

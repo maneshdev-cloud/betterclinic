@@ -74,9 +74,21 @@ export default function AuthSectionTwo({
   }, [state.redirectUrl, router]);
 
   const handleOAuth = async (provider: "google" | "apple") => {
-    if (!isSupabaseConfigured()) return;
+    setSocialLoading(provider);
+    if (!isSupabaseConfigured()) {
+      try {
+        const { quickDemoLoginAction } = await import("@/app/(auth)/actions");
+        const res = await quickDemoLoginAction("PATIENT");
+        if (res.redirectUrl) {
+          router.replace(res.redirectUrl);
+          router.refresh();
+        }
+      } catch {
+        setSocialLoading(null);
+      }
+      return;
+    }
     try {
-      setSocialLoading(provider);
       const supabase = createClient();
       await supabase.auth.signInWithOAuth({
         provider,

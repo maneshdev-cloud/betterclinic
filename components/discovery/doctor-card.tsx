@@ -8,11 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatINR } from "@/lib/utils";
 import type { DoctorListItem } from "@/services/doctors/service";
 
+import { DoctorIdBadgeModal } from "@/components/doctors/doctor-id-badge-modal";
+
 interface DoctorCardProps {
   doctor: DoctorListItem;
 }
 
-/** Doctor result card for the discovery list (server-rendered, no client JS). */
+/** Doctor result card for the discovery list. */
 export function DoctorCard({ doctor }: DoctorCardProps) {
   const name = doctor.profile?.full_name ?? "Doctor";
   const areas = Array.from(new Set(doctor.clinics.map((clinic) => `${clinic.area}, ${clinic.city}`)))
@@ -71,16 +73,28 @@ export function DoctorCard({ doctor }: DoctorCardProps) {
           ) : null}
         </div>
 
-        <div className="mt-auto flex items-center justify-between gap-3 pt-1">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50">
           <span className="text-sm font-medium text-foreground sm:hidden">
             {formatINR(doctor.consultation_fee)}
           </span>
-          <Button asChild className="ml-auto" size="sm">
-            <Link href={`/patient/doctors/${doctor.id}`}>
-              <CalendarClock className="mr-1.5 h-4 w-4" aria-hidden />
-              View profile & book
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+            <DoctorIdBadgeModal
+              name={name}
+              role={`${doctor.qualification} · ${doctor.specializations[0]?.name ?? "Specialist"}`}
+              brand={doctor.clinics[0]?.name ?? "BETTER CLINIC"}
+              brandTagline={doctor.clinics[0]?.city ? `${doctor.clinics[0].city} Campus` : "Verified Healthcare"}
+              idNumber={`DOC-${doctor.id.slice(0, 8).toUpperCase()}`}
+              location={doctor.clinics[0]?.area ?? "Clinical Wing"}
+              avatarUrl={doctor.profile?.avatar_url}
+              variant="card"
+            />
+            <Button asChild size="sm">
+              <Link href={`/patient/doctors/${doctor.id}`}>
+                <CalendarClock className="mr-1.5 h-4 w-4" aria-hidden />
+                View & book
+              </Link>
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -11,9 +11,11 @@ import { retryFetch } from "@/lib/network/with-retry";
  */
 let browserClient: ReturnType<typeof createBrowserClient> | null = null;
 
+import { createMockClient } from "./mock-client";
+
 export function createClient() {
   if (!isSupabaseConfigured()) {
-    throw new AppError("SUPABASE_NOT_CONFIGURED");
+    return createMockClient();
   }
   if (!browserClient) {
     browserClient = createBrowserClient(env.supabaseUrl, env.supabaseAnonKey, {

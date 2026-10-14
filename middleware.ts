@@ -26,9 +26,18 @@ const AUTH_PAGES = ["/login", "/signup", "/choose-role"];
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
-  if (!isSupabaseConfigured()) return response;
-
   const { pathname, search } = request.nextUrl;
+
+  // Skip static assets, icons and favicon immediately
+  if (
+    pathname.includes("icon.svg") ||
+    pathname.endsWith(".svg") ||
+    pathname.endsWith(".ico") ||
+    pathname.endsWith(".png") ||
+    pathname.endsWith(".jpg")
+  ) {
+    return response;
+  }
 
   const guarded = ROLE_PREFIXES.find(
     (r) => pathname === r.prefix || pathname.startsWith(`${r.prefix}/`)
@@ -38,6 +47,65 @@ export async function middleware(request: NextRequest) {
 
   // Performance optimization: Skip auth check on unauthenticated public routes
   if (!guarded && !isAuthPage && !isAccountPage) {
+    return response;
+  }
+
+  function applyNoStoreHeaders(res: NextResponse): NextResponse {
+    res.headers.set("Cache-Control", "no-cache, must-revalidate");
+    return res;
+  }
+
+  // 1. Check for Demo User Session
+  const demoCookie = request.cookies.get("bc_demo_user");
+  let demoUser: { role: Role; roles: Role[]; fullName?: string } | null = null;
+  if (demoCookie?.value) {
+    try {
+      demoUser = JSON.parse(decodeURIComponent(demoCookie.value));
+    } catch {
+      try {
+        demoUser = JSON.parse(demoCookie.value);
+      } catch {}
+    }
+  }
+
+  if (demoUser) {
+    const activeCookieRole = request.cookies.get("bc_active_role")?.value as Role | undefined;
+    const effectiveRole =
+      activeCookieRole && demoUser.roles?.includes(activeCookieRole)
+        ? activeCookieRole
+        : demoUser.role || "PATIENT";
+
+    if (isAuthPage) {
+      if (pathname === "/choose-role") return applyNoStoreHeaders(response);
+      const url = request.nextUrl.clone();
+      url.pathname = roleHomePath(effectiveRole);
+      url.search = "";
+      return applyNoStoreHeaders(NextResponse.redirect(url));
+    }
+
+    if (guarded) {
+      const hasAccess =
+        guarded.roles.includes(effectiveRole) ||
+        (demoUser.roles && demoUser.roles.some((r) => guarded.roles.includes(r)));
+      if (!hasAccess) {
+        const url = request.nextUrl.clone();
+        url.pathname = roleHomePath(effectiveRole);
+        url.search = "";
+        return applyNoStoreHeaders(NextResponse.redirect(url));
+      }
+    }
+
+    return applyNoStoreHeaders(response);
+  }
+
+  // 2. If Supabase is NOT configured and no demo session exists
+  if (!isSupabaseConfigured()) {
+    if (guarded || isAccountPage) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = `?next=${encodeURIComponent(pathname + search)}`;
+      return applyNoStoreHeaders(NextResponse.redirect(url));
+    }
     return response;
   }
 
@@ -59,19 +127,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Fast-path for Next.js internal RSC navigations:
-  // When navigating between pages within the client application, the browser sends an RSC request.
-  // The layout & page server components already execute `requireRole()` with full database verification.
-  // Bypassing the redundant external Supabase network call in middleware allows the Next.js stream
-  // to start immediately (<5ms instead of 800ms-3000ms), displaying skeletons instantaneously.
+  // Fast-path for Next.js internal RSC navigations
   const isRscRequest = request.headers.get("rsc") === "1" || request.nextUrl.searchParams.has("_rsc");
   if (isRscRequest && (guarded || isAccountPage) && hasAuthCookie) {
     return response;
-  }
-
-  function applyNoStoreHeaders(res: NextResponse): NextResponse {
-    res.headers.set("Cache-Control", "no-cache, must-revalidate");
-    return res;
   }
 
   const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -91,15 +150,13 @@ export async function middleware(request: NextRequest) {
 
   let user = null;
   try {
-    // Single-attempt auth check with timeout (no multi-second retries in middleware)
     const authPromise = supabase.auth.getUser();
     const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((_, reject) =>
-      setTimeout(() => reject(new Error("Auth timeout")), 2500)
+      setTimeout(() => reject(new Error("Auth timeout")), 2000)
     );
     const { data } = await Promise.race([authPromise, timeoutPromise]);
     user = data.user;
-  } catch (err) {
-    console.warn("[Middleware] Auth check encountered network failure or timeout:", err);
+  } catch {
     if (guarded || isAccountPage) {
       return response;
     }

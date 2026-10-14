@@ -91,7 +91,7 @@ export function LiveRefresh({
           () => debouncedRefresh()
         );
       }
-      channel.subscribe((state) => {
+      channel.subscribe((state: any) => {
         if (state === "SUBSCRIBED") {
           setStatus("live");
           // Reconnection catch-up: if we recovered from a disconnect, refresh state immediately

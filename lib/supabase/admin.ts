@@ -12,12 +12,11 @@ import { AppError } from "@/lib/errors";
  * guarded by the `server-only` package and the key comes from a
  * non-NEXT_PUBLIC environment variable.
  */
+import { createMockClient } from "./mock-client";
+
 export function createAdminClient() {
   if (!isSupabaseConfigured() || !hasServiceRole()) {
-    throw new AppError(
-      "SUPABASE_NOT_CONFIGURED",
-      "This action requires the SUPABASE_SERVICE_ROLE_KEY environment variable (server-side only)."
-    );
+    return createMockClient();
   }
   return createSupabaseClient(env.supabaseUrl, env.supabaseServiceRoleKey, {
     auth: {

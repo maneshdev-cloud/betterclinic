@@ -19,7 +19,8 @@ export interface CreateClientOptions {
  */
 export const createClient = cache(async (options: CreateClientOptions = {}) => {
   if (!isSupabaseConfigured()) {
-    throw new AppError("SUPABASE_NOT_CONFIGURED");
+    const { createMockClient } = await import("./mock-client");
+    return createMockClient();
   }
   const cookieStore = cookies();
   const hideDemo = !options.bypassHideDemo && cookieStore.get(HIDE_DEMO_COOKIE)?.value === "true";

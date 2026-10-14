@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { UserMenu } from "@/components/layout/user-menu";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { DoctorIdBadgeModal } from "@/components/doctors/doctor-id-badge-modal";
 import {
   PATIENT_NAV,
   DOCTOR_NAV,
@@ -205,6 +206,19 @@ export function AppShell({
       </div>
 
       <div className="flex items-center gap-2.5">
+        {/* Always visible button to inspect 3D ID Card Lanyard */}
+        <DoctorIdBadgeModal
+          name={userRole === "DOCTOR" ? userName : "Dr. Aarav Deshmukh"}
+          role={userRole === "DOCTOR" ? "Verified Consultant" : "Chief of Medicine"}
+          brand="BETTER CLINIC"
+          brandTagline="Digital Credential ID"
+          idNumber="DOC-4921-MMC"
+          location="Mumbai Central Campus"
+          avatarUrl={userRole === "DOCTOR" ? avatarUrl : "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=256&q=80"}
+          variant="header"
+          buttonText="ID Card Badge"
+        />
+
         <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold">
           <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>Clinic Online</span>

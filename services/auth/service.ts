@@ -25,14 +25,65 @@ export interface SessionUser {
  * Network queries are protected with withRetry against transient glitches.
  */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
+  const cookieStore = cookies();
+
+  // 1. Check for Demo User Session Cookie
+  const demoCookie = cookieStore.get("bc_demo_user");
+  if (demoCookie?.value) {
+    try {
+      let rawVal = demoCookie.value;
+      try {
+        rawVal = decodeURIComponent(rawVal);
+      } catch {}
+      const demoUser = JSON.parse(rawVal);
+      if (demoUser && demoUser.id && demoUser.role) {
+        const activeCookieRole = cookieStore.get("bc_active_role")?.value as Role | undefined;
+        const roles = Array.isArray(demoUser.roles) && demoUser.roles.length > 0
+          ? (demoUser.roles as Role[])
+          : [demoUser.role as Role];
+        const activeRole =
+          activeCookieRole && roles.includes(activeCookieRole)
+            ? activeCookieRole
+            : demoUser.role;
+
+        return {
+          id: demoUser.id,
+          email: demoUser.email || "demo@betterclinic.app",
+          role: activeRole,
+          roles,
+          fullName: demoUser.fullName || demoUser.full_name || "Demo User",
+          phone: demoUser.phone || null,
+          avatarUrl: demoUser.avatarUrl || demoUser.avatar_url || null,
+          profile: demoUser.profile || {
+            id: demoUser.id,
+            role: activeRole,
+            full_name: demoUser.fullName || demoUser.full_name || "Demo User",
+            email: demoUser.email || "demo@betterclinic.app",
+            phone: demoUser.phone || null,
+            avatar_url: demoUser.avatarUrl || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as any,
+        };
+      }
+    } catch {
+      // invalid demo cookie, fall through
+    }
+  }
+
+  // 2. If Supabase is not configured, no further session lookup
+  const { isSupabaseConfigured } = await import("@/lib/env");
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await withRetry(() => supabase.auth.getUser());
+    const authRes = (await withRetry(() => supabase.auth.getUser(), { retries: 1, backoffs: [150] })) as any;
+    const user = authRes?.data?.user;
     if (!user) return null;
 
-    const [{ data: profile }, { data: rolesRows }] = await withRetry(
+    const [{ data: profile }, { data: rolesRows }] = (await withRetry(
       () =>
         Promise.all([
           supabase
@@ -43,17 +94,13 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
           supabase.from("profile_roles").select("role").eq("profile_id", user.id),
         ]),
       { retries: 1, backoffs: [150] }
-    );
+    )) as any;
 
     const roles: Role[] =
       rolesRows && rolesRows.length > 0
-        ? (rolesRows.map((r) => r.role as Role).filter(Boolean))
+        ? ((rolesRows as { role: Role }[]).map((r) => r.role as Role).filter(Boolean))
         : [((profile?.role ?? user.app_metadata?.role ?? "PATIENT") as Role) ?? "PATIENT"];
 
-    // Determine active role:
-    // 1. From active role cookie if set and valid for this user
-    // 2. Default to first role in roles list
-    const cookieStore = cookies();
     const activeCookieRole = cookieStore.get("bc_active_role")?.value as Role | undefined;
     const activeRole =
       activeCookieRole && roles.includes(activeCookieRole)

@@ -140,12 +140,6 @@ export function LandingView({ isConfigured }: LandingViewProps) {
       </header>
 
       <main>
-        {!isConfigured ? (
-          <div className="page-container pt-6">
-            <SetupNotice />
-          </div>
-        ) : null}
-
         {/* ── HERO SECTION ────────────────────────────────────────── */}
         <section className="page-container pt-12 pb-16 sm:pt-20 text-center">
           {/* Calming Welcome Badge */}

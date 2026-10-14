@@ -7,14 +7,6 @@ import { getStaffClinicContext } from "@/services/clinics/service";
 export const dynamic = "force-dynamic";
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
-  if (!isSupabaseConfigured()) {
-    return (
-      <div className="page-container py-10">
-        <SetupNotice />
-      </div>
-    );
-  }
-
   const user = await requireRole(["RECEPTIONIST"], "/staff");
   const clinic = await getStaffClinicContext(user.id);
 

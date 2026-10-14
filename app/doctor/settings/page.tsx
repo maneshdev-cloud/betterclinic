@@ -34,19 +34,19 @@ export default async function DoctorSettingsPage() {
   const affiliatedClinics: { id: string; name: string; city: string; area: string }[] = [];
 
   if (doctorClinics && doctorClinics.length > 0) {
-    const clinicIds = doctorClinics.map((dc) => dc.clinic_id);
+    const clinicIds = doctorClinics.map((dc: any) => dc.clinic_id);
     const { data: codes } = await supabase
       .from("clinic_invite_codes")
       .select("clinic_id, code, doctor_code")
       .in("clinic_id", clinicIds);
 
-    doctorClinics.forEach((dc) => {
+    doctorClinics.forEach((dc: any) => {
       const clinic = (dc as unknown as { clinics: { id: string; name: string; city: string; area: string } | null }).clinics;
       if (clinic) {
         affiliatedClinics.push(clinic);
       }
       if (codes) {
-        const matchingCode = codes.find((c) => c.clinic_id === dc.clinic_id);
+        const matchingCode = (codes as any[]).find((c: any) => c.clinic_id === dc.clinic_id);
         inviteCodes.push({
           clinicId: dc.clinic_id,
           clinicName: clinic?.name ?? "Clinic",

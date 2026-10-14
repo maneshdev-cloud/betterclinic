@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface IDCardLanyardProps {
   /** Full name shown on the card and used for the back-face signature. */
@@ -33,6 +34,8 @@ export interface IDCardLanyardProps {
   /** Show the "drag to swing" hint until the visitor first interacts with the card. */
   showHint?: boolean;
   className?: string;
+  /** Optional callback to close the lanyard overlay */
+  onClose?: () => void;
 }
 
 const CSS = `
@@ -236,7 +239,9 @@ export function IDCardLanyard({
   zIndex = 60,
   showHint = true,
   className = "",
+  onClose,
 }: IDCardLanyardProps) {
+  const [mounted, setMounted] = useState(false);
   const sceneRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
@@ -246,6 +251,21 @@ export function IDCardLanyard({
   const qrBackRef = useRef<HTMLDivElement>(null);
   const qrFrontRef = useRef<HTMLDivElement>(null);
   const [interacted, setInteracted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!onClose) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   useEffect(() => {
     const id = "idcl-fonts";
@@ -297,20 +317,23 @@ export function IDCardLanyard({
     buildQR(qrFrontEl, 574123);
 
     function resolveAnchorX() {
-      const rect = scene!.getBoundingClientRect();
+      const rect = scene?.getBoundingClientRect();
+      const width = rect && rect.width > 0 ? rect.width : window.innerWidth;
       const v = anchorX.trim();
       const calcMatch = v.match(/^calc\(\s*100%\s*-\s*([\d.]+)px\s*\)$/);
-      if (calcMatch) return rect.width - parseFloat(calcMatch[1]);
-      if (v.endsWith("%")) return rect.width * (parseFloat(v) / 100);
-      return parseFloat(v);
+      if (calcMatch) return width - parseFloat(calcMatch[1]);
+      if (v.endsWith("%")) return width * (parseFloat(v) / 100);
+      return parseFloat(v) || width / 2;
     }
 
     const anchor = { x: resolveAnchorX(), y: anchorY };
 
     function resize() {
-      const rect = scene!.getBoundingClientRect();
-      canvas!.width = rect.width;
-      canvas!.height = rect.height;
+      const rect = scene?.getBoundingClientRect();
+      const width = rect && rect.width > 0 ? rect.width : window.innerWidth;
+      const height = rect && rect.height > 0 ? rect.height : window.innerHeight;
+      canvas!.width = width;
+      canvas!.height = height;
       anchor.x = resolveAnchorX();
       rail!.style.left = anchor.x + "px";
       rail!.style.top = anchor.y - 3 + "px";
@@ -346,9 +369,12 @@ export function IDCardLanyard({
     const tiltCurrent = { x: 0, y: 0 };
     let mouse = { x: -9999, y: -9999 };
 
-    function getScenePos(e: PointerEvent) {
-      const rect = scene!.getBoundingClientRect();
-      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    function getScenePos(e?: PointerEvent | MouseEvent) {
+      if (!e) return { x: anchor.x, y: anchor.y + REST_LENGTH };
+      const rect = scene?.getBoundingClientRect();
+      const left = rect ? rect.left : 0;
+      const top = rect ? rect.top : 0;
+      return { x: e.clientX - left, y: e.clientY - top };
     }
 
     function clampToScene(p: { x: number; y: number }) {
@@ -539,11 +565,10 @@ export function IDCardLanyard({
     }
 
     const onCardDown = (e: PointerEvent) => {
-      if ((e.target as HTMLElement).closest("a")) return;
+      if ((e.target as HTMLElement).closest("a") || (e.target as HTMLElement).closest("button")) return;
       e.preventDefault();
       dragging = true;
       setInteracted(true);
-      card!.setPointerCapture(e.pointerId);
       const pos = clampToScene(getScenePos(e));
       pointer = pos;
       lastPointer = pos;
@@ -559,10 +584,10 @@ export function IDCardLanyard({
       lastPointer = pos;
       pointer = pos;
     };
-    const onWindowUp = () => {
+    const onWindowUp = (e: PointerEvent) => {
       if (!dragging) return;
       dragging = false;
-      const pos = getScenePos(window.event as PointerEvent);
+      const pos = getScenePos(e);
       const dist = Math.hypot(pos.x - downPos.x, pos.y - downPos.y);
       if (dist < TAP_THRESHOLD) {
         flipped = !flipped;
@@ -597,11 +622,36 @@ export function IDCardLanyard({
       window.removeEventListener("resize", onResize);
       document.removeEventListener("pointerout", onPointerOut);
     };
-  }, [anchorX, anchorY]);
+  }, [anchorX, anchorY, mounted]);
 
-  return (
+  if (!mounted || typeof document === "undefined") return null;
+
+  return createPortal(
     <div className={`idcl-root ${className}`} style={{ "--idcl-z": zIndex } as React.CSSProperties}>
-      <style>{CSS}</style>
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+
+      {onClose && (
+        <div
+          className="fixed inset-0 bg-slate-950/40 backdrop-blur-[2px] pointer-events-auto transition-opacity z-[55]"
+          onClick={onClose}
+          aria-label="Close lanyard overlay"
+        />
+      )}
+
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="fixed top-6 right-6 z-[999] pointer-events-auto inline-flex items-center gap-2 rounded-full bg-background/95 px-4 py-2 text-sm font-semibold text-foreground shadow-2xl border border-border hover:bg-muted hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          aria-label="Close ID Badge"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <span>Close Badge</span>
+          <kbd className="hidden sm:inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground border">ESC</kbd>
+        </button>
+      )}
 
       <div className="idcl-stage" ref={sceneRef}>
         <canvas className="idcl-rope" ref={canvasRef} />
@@ -759,7 +809,8 @@ export function IDCardLanyard({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

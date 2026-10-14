@@ -77,8 +77,10 @@ export const DOCTOR_NAV: NavSection[] = [
     title: "Clinic",
     items: [
       { label: "My queue", href: "/doctor/queue", icon: Clock },
+      { label: "Appointments", href: "/doctor/appointments", icon: CalendarDays },
       { label: "Consultations", href: "/doctor/consultations", icon: Stethoscope },
       { label: "My patients", href: "/doctor/patients", icon: Users },
+      { label: "My clinics", href: "/doctor/clinics", icon: Building2 },
       { label: "Availability", href: "/doctor/availability", icon: CalendarCheck },
     ],
   },

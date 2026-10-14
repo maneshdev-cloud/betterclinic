@@ -25,8 +25,7 @@ export default async function LoginPage({
           </div>
           <span className="text-lg font-bold tracking-tight">Better Clinic</span>
         </Link>
-        {!configured ? <SetupNotice /> : null}
-        <LoginForm nextPath={searchParams.next ?? null} disabled={!configured} />
+        <LoginForm nextPath={searchParams.next ?? null} disabled={false} />
       </div>
     </div>
   );
