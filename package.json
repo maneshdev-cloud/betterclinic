@@ -2,7 +2,7 @@
   "name": "better-clinic",
   "version": "0.1.0",
   "private": true,
-  "description": "Better Clinic \u2014 Smart Digital Healthcare Platform (final-year prototype)",
+  "description": "Better Clinic — Smart Digital Healthcare Platform (final-year prototype)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -42,6 +42,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "framer-motion": "^14.0.0",
     "lucide-react": "^0.441.0",
     "next": "^14.2.13",
     "react": "^18.3.1",

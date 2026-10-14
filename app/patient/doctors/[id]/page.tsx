@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { BookingSection, type BookingClinic } from "@/components/appointments/booking-section";
+import { IDCardLanyard } from "@/components/ui/id-card-lanyard";
 import { createClient } from "@/lib/supabase/server";
 import {
   getDoctorProfile,
@@ -82,6 +83,29 @@ export default async function DoctorProfilePage({ params, searchParams }: PagePr
 
   return (
     <div className="page-container space-y-6 py-8">
+      {/* Interactive Official Doctor ID Lanyard (Desktop) */}
+      <div className="hidden xl:block">
+        <IDCardLanyard
+          name={name}
+          role={`${doctor.qualification} · ${doctor.specializations[0]?.name ?? "Specialist"}`}
+          brand={doctor.clinics[0]?.name ?? "BETTER CLINIC"}
+          brandTagline={doctor.clinics[0]?.city ? `${doctor.clinics[0].city} Medical Campus` : "Verified Healthcare"}
+          idNumber={`DOC-${doctor.registration_number}`}
+          location={doctor.clinics[0]?.area ?? "Clinical Wing"}
+          validThru="12/2028"
+          pillars={[
+            doctor.specializations[0]?.name?.slice(0, 10) ?? "Clinical",
+            `${doctor.experience_years}y Exp`,
+            "Verified",
+          ]}
+          avatarUrl={doctor.profile?.avatar_url}
+          site="betterclinic.health/verify"
+          anchorX="calc(100% - 130px)"
+          anchorY={12}
+          zIndex={50}
+        />
+      </div>
+
       <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
         <Link href="/patient/doctors" className="hover:underline">
           ← Back to doctors

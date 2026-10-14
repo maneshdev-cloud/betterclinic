@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { SetupNotice } from "@/components/shared/setup-notice";
 import { isSupabaseConfigured } from "@/lib/env";
-import { SignUpForm } from "./signup-form";
+import AuthSectionTwo from "@/components/ui/auth-section-2";
 
-export const metadata: Metadata = { title: "Create account" };
+export const metadata: Metadata = { title: "Create account · Better Clinic" };
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -24,14 +24,22 @@ export default async function SignUpPage() {
       specializations = (specResult.data as typeof specializations) ?? [];
       clinics = (clinicResult.data as typeof clinics) ?? [];
     } catch {
-      // Database unreachable — the form will show its own empty states.
+      // Database unreachable — the form will show its own fallback states.
     }
   }
 
   return (
-    <div className="space-y-6">
-      {!configured ? <SetupNotice /> : null}
-      <SignUpForm specializations={specializations} clinics={clinics} disabled={!configured} />
+    <div>
+      {!configured ? (
+        <div className="p-4">
+          <SetupNotice />
+        </div>
+      ) : null}
+      <AuthSectionTwo
+        specializations={specializations}
+        clinics={clinics}
+        disabled={!configured}
+      />
     </div>
   );
 }

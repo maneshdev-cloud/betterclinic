@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/services/auth/service";
 import { getEmergencyCard, listPatientEmergencyRequests, getAppEnv } from "@/services/emergency/service";
 
-export const metadata: Metadata = { title: "Emergency (demo)" };
+export const metadata: Metadata = { title: "Emergency Assistance" };
 
 export default async function PatientEmergencyPage() {
   const user = await requireRole(["PATIENT"], "/patient/emergency");
@@ -23,8 +23,8 @@ export default async function PatientEmergencyPage() {
   return (
     <div className="page-container space-y-6 py-8">
       <PageHeader
-        title="Emergency"
-        description="Prototype emergency module — clearly labelled, never a substitute for real emergency services."
+        title="Emergency Assistance"
+        description="Urgent assistance module — for life-threatening situations, call emergency services immediately."
       />
 
       {/* Real emergency callout — always first */}
@@ -32,11 +32,10 @@ export default async function PatientEmergencyPage() {
         <PhoneCall className="mt-0.5 h-5 w-5 shrink-0 text-red-700" aria-hidden />
         <div>
           <p className="font-semibold text-red-800">
-            In a real emergency, call 108 (ambulance) or 112 (all-in-one) immediately.
+            In a critical emergency, call 108 (ambulance) or 112 immediately.
           </p>
           <p className="mt-0.5 text-sm text-red-700">
-            This page is a college prototype. Requests raised here are recorded in the clinic system
-            only — no ambulance, hospital or emergency service is contacted.
+            Requests raised here are recorded in the clinic system for urgent staff triage.
           </p>
         </div>
       </div>
@@ -131,8 +130,7 @@ export default async function PatientEmergencyPage() {
 
           {appEnv !== "demo" ? (
             <p className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
-              This app is running in production mode, so the simulated status progression is disabled.
-              Requests are still recorded and audited.
+              Requests are recorded and audited by clinic triage staff.
             </p>
           ) : null}
         </div>

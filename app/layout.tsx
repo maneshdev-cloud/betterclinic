@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = cookies();
-  const theme = cookieStore.get("bc_theme")?.value ?? "system";
+  const theme = cookieStore.get("bc_theme")?.value ?? "light";
   const initialClass = theme === "dark" ? "dark" : "";
 
   return (
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `
               try {
                 const cookie = document.cookie.split('; ').find(r => r.startsWith('bc_theme='));
-                const theme = cookie ? cookie.split('=')[1] : 'system';
+                const theme = cookie ? cookie.split('=')[1] : 'light';
                 const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
                 if (isDark) document.documentElement.classList.add('dark');
                 else document.documentElement.classList.remove('dark');

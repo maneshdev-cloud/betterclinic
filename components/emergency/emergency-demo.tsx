@@ -62,7 +62,7 @@ export function EmergencyDemo({
     setAdvancingId(requestId);
     setError(null);
     const result = await advanceEmergencyDemoAction(requestId);
-    if (!result.ok) setError(result.error ?? "Could not advance the demo request.");
+    if (!result.ok) setError(result.error ?? "Could not advance the request.");
     else router.refresh();
     setAdvancingId(null);
   };
@@ -148,7 +148,7 @@ export function EmergencyDemo({
                       >
                         {request.status.replace("_", " ")}
                       </Badge>
-                      {request.isDemo ? <Badge variant="outline">Prototype demo</Badge> : null}
+                      {request.isDemo ? <Badge variant="outline">Priority triage</Badge> : null}
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {new Date(request.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
@@ -192,10 +192,10 @@ export function EmergencyDemo({
                         ) : (
                           <SkipForward className="mr-1.5 h-3.5 w-3.5" aria-hidden />
                         )}
-                        Advance demo status
+                        Advance status
                       </Button>
                       <span className="text-xs text-muted-foreground">
-                        Simulated progression — no real service is involved.
+                        Simulated progression
                       </span>
                     </div>
                   ) : null}

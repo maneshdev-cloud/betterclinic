@@ -42,7 +42,7 @@ export function SetupNotice() {
           </li>
           <li>
             Run <span className="font-mono text-xs">npm run db:push</span> to create the schema,
-            then <span className="font-mono text-xs">npm run seed</span> for realistic demo data.
+            then <span className="font-mono text-xs">npm run seed</span> to populate initial clinic data.
           </li>
         </ol>
         <p>

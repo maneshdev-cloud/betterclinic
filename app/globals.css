@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* Better Clinic — calm, professional healthcare palette */
+    /* Better Clinic — Trusted, compassionate healthcare palette */
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
 
@@ -14,81 +14,82 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Deep teal — trustworthy, clinical, calm */
-    --primary: 174 74% 22%;
+    /* Healing Medical Teal / Emerald */
+    --primary: 173 80% 28%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 174 30% 94%;
-    --secondary-foreground: 174 60% 14%;
+    --secondary: 168 55% 95%;
+    --secondary-foreground: 173 80% 20%;
 
-    --muted: 214 32% 95%;
+    --muted: 210 30% 96%;
     --muted-foreground: 215 16% 45%;
 
-    --accent: 174 40% 92%;
-    --accent-foreground: 174 60% 14%;
+    --accent: 168 50% 92%;
+    --accent-foreground: 173 80% 20%;
 
-    --destructive: 0 72% 44%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 84% 28%;
+    --success: 156 72% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 36 92% 33%;
+    --warning: 38 92% 45%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214 28% 88%;
-    --input: 214 28% 84%;
-    --ring: 174 60% 30%;
+    --border: 214 28% 90%;
+    --input: 214 28% 88%;
+    --ring: 173 80% 35%;
 
-    --chart-1: 174 70% 30%;
-    --chart-2: 210 70% 50%;
-    --chart-3: 40 85% 45%;
-    --chart-4: 262 40% 55%;
-    --chart-5: 0 70% 55%;
+    --chart-1: 173 80% 35%;
+    --chart-2: 199 89% 48%;
+    --chart-3: 156 72% 38%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 340 75% 55%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222 47% 8%;
+    /* Calming Medical Navy Dark Mode */
+    --background: 222 47% 9%;
     --foreground: 210 40% 98%;
 
-    --card: 222 47% 11%;
+    --card: 222 45% 12%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 47% 11%;
+    --popover: 222 45% 12%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 174 74% 35%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 168 75% 42%;
+    --primary-foreground: 222 47% 9%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 217 33% 18%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 217 33% 17%;
+    --muted: 217 33% 16%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 217 33% 18%;
+    --accent-foreground: 168 75% 65%;
 
-    --destructive: 0 62% 40%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 84% 35%;
-    --success-foreground: 0 0% 100%;
+    --success: 156 75% 45%;
+    --success-foreground: 222 47% 9%;
 
-    --warning: 36 92% 40%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 222 47% 9%;
 
-    --border: 217 33% 20%;
-    --input: 217 33% 22%;
-    --ring: 174 74% 35%;
+    --border: 217 33% 18%;
+    --input: 217 33% 20%;
+    --ring: 168 75% 42%;
 
-    --chart-1: 174 70% 45%;
-    --chart-2: 210 70% 60%;
-    --chart-3: 40 85% 55%;
-    --chart-4: 262 40% 65%;
-    --chart-5: 0 70% 65%;
+    --chart-1: 168 75% 45%;
+    --chart-2: 199 89% 55%;
+    --chart-3: 156 72% 45%;
+    --chart-4: 38 92% 55%;
+    --chart-5: 340 75% 65%;
   }
 
   * {
@@ -117,11 +118,10 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased selection:bg-teal-500/20 selection:text-teal-900 dark:selection:text-teal-200;
     text-rendering: optimizeLegibility;
   }
 
-  /* Accessible focus visibility across all interactive elements */
   :focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
@@ -129,7 +129,6 @@
 }
 
 @layer utilities {
-  /* Consistent page container used by every screen */
   .page-container {
     @apply mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8;
   }
@@ -138,7 +137,6 @@
     @apply text-xs font-medium text-destructive;
   }
 
-  /* Explicit scrollbar hiding utility */
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -148,9 +146,36 @@
     width: 0;
     height: 0;
   }
+
+  /* Healing Medical Visual Accents */
+  .medical-soft-bg {
+    background: radial-gradient(ellipse 90% 60% at 50% -10%, rgba(13, 148, 136, 0.08), transparent 70%);
+  }
+
+  .medical-card {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .medical-card:hover {
+    border-color: rgba(13, 148, 136, 0.3);
+    box-shadow: 0 10px 30px -10px rgba(13, 148, 136, 0.12);
+    transform: translateY(-2px);
+  }
+
+  .text-gradient-medical {
+    background: linear-gradient(135deg, #0f766e 0%, #0d9488 60%, #059669 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .dark .text-gradient-medical {
+    background: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 60%, #34d399 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 }
 
-/* ── Print experience (prescriptions, confirmations) ────────────── */
+/* ── Print experience ────────────────────────────────────────────── */
 @media print {
   .no-print {
     display: none !important;

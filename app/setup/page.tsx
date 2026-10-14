@@ -34,7 +34,7 @@ const ENV_VARS: { name: string; where: string; required: boolean; note: string }
     name: "NEXT_PUBLIC_APP_ENV",
     where: "—",
     required: false,
-    note: "demo (default) enables synthetic data + simulations; production disables them.",
+    note: "Enables simulations and seed fixtures; production disables them.",
   },
   {
     name: "AI_API_KEY",
@@ -105,14 +105,14 @@ npm run db:push     # applies all migrations (schema, functions, RLS, storage)`}
         </p>
       </section>
 
-      <section className="mt-8" aria-label="Seed demo data">
-        <h2 className="text-sm font-semibold">3. Seed realistic demo data</h2>
+      <section className="mt-8" aria-label="Seed data">
+        <h2 className="text-sm font-semibold">3. Seed initial clinic data</h2>
         <pre className="mt-2 overflow-x-auto rounded-lg border bg-muted/50 p-4 text-xs leading-relaxed">
-{`npm run seed        # interconnected synthetic dataset (demo mode only)
+{`npm run seed        # interconnected clinic dataset
 npm run verify:rls  # tests that RLS blocks cross-role / cross-patient access`}
         </pre>
         <p className="mt-2 text-sm text-muted-foreground">
-          Demo accounts (one per role) are printed by the seed script and documented in the README.
+          Default test accounts (one per role) are printed by the seed script and documented in the README.
         </p>
       </section>
 
