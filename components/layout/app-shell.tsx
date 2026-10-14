@@ -55,7 +55,7 @@ function NavLink({
   return (
     <Link
       href={item.href}
-      prefetch={true}
+      prefetch={item.prefetch ?? false}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       aria-busy={isPending ? "true" : undefined}

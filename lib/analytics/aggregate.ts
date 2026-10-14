@@ -22,13 +22,13 @@ export interface AnalyticsRange {
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_SPAN_DAYS = 366;
 
-function addDaysIso(dateStr: string, days: number): string {
+export function addDaysIso(dateStr: string, days: number): string {
   const base = new Date(`${dateStr}T12:00:00Z`);
   base.setUTCDate(base.getUTCDate() + days);
   return base.toISOString().slice(0, 10);
 }
 
-function daysBetween(fromStr: string, toStr: string): number {
+export function daysBetween(fromStr: string, toStr: string): number {
   const a = new Date(`${fromStr}T12:00:00Z`).getTime();
   const b = new Date(`${toStr}T12:00:00Z`).getTime();
   return Math.round((b - a) / 86400000);

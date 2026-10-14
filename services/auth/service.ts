@@ -1,11 +1,18 @@
 import "server-only";
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { roleHomePath, type Role } from "@/lib/constants";
 import type { Profile } from "@/lib/types/database";
 import { withRetry } from "@/lib/network/with-retry";
+import { isNetworkError } from "@/lib/network/is-network-error";
+import { AppError } from "@/lib/errors";
+import {
+  isAuthRetryableFetchError,
+  isAuthSessionMissingError,
+  type User,
+} from "@supabase/supabase-js";
 
 export interface SessionUser {
   id: string;
@@ -26,24 +33,86 @@ export interface SessionUser {
  */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   try {
+    let headerList: Headers | null = null;
+    try {
+      headerList = headers();
+    } catch {
+      // In tests or environments without request header context
+    }
+
+    if (headerList?.get("x-bc-auth-error") === "network") {
+      throw new AppError("NETWORK");
+    }
+
+    let user: User | null = null;
+    const cachedUserHeader = headerList?.get("x-bc-auth-user");
+    if (cachedUserHeader) {
+      try {
+        user = JSON.parse(decodeURIComponent(cachedUserHeader)) as User;
+      } catch {
+        user = null;
+      }
+    }
+
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await withRetry(() => supabase.auth.getUser());
+
+    if (!user) {
+      const { data, error } = await withRetry(
+        async () => {
+          const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((_, reject) =>
+            setTimeout(() => reject(new Error("Auth timeout")), 4000)
+          );
+          const res = await Promise.race([supabase.auth.getUser(), timeoutPromise]);
+          if (
+            res.error &&
+            (isNetworkError(res.error) ||
+              isAuthRetryableFetchError(res.error) ||
+              (typeof res.error === "object" && "status" in res.error && Number((res.error as any).status) >= 500))
+          ) {
+            throw res.error;
+          }
+          return res;
+        },
+        { retries: 1, backoffs: [200] }
+      );
+
+      if (error) {
+        if (
+          isNetworkError(error) ||
+          isAuthRetryableFetchError(error) ||
+          (typeof error === "object" && "status" in error && Number((error as any).status) >= 500)
+        ) {
+          throw new AppError("NETWORK");
+        }
+        // Confirmed unauthenticated (e.g. AuthSessionMissingError)
+        return null;
+      }
+
+      user = data?.user ?? null;
+    }
+
     if (!user) return null;
 
-    const [{ data: profile }, { data: rolesRows }] = await withRetry(
-      () =>
-        Promise.all([
-          supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .single(),
-          supabase.from("profile_roles").select("role").eq("profile_id", user.id),
-        ]),
-      { retries: 1, backoffs: [150] }
-    );
+    const [{ data: profile, error: profileError }, { data: rolesRows, error: rolesError }] =
+      await withRetry(
+        () =>
+          Promise.all([
+            supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", user.id)
+              .single(),
+            supabase.from("profile_roles").select("role").eq("profile_id", user.id),
+          ]),
+        { retries: 1, backoffs: [150] }
+      );
+
+    if (profileError && isNetworkError(profileError)) {
+      throw new AppError("NETWORK");
+    }
+    if (rolesError && isNetworkError(rolesError)) {
+      throw new AppError("NETWORK");
+    }
 
     const roles: Role[] =
       rolesRows && rolesRows.length > 0
@@ -70,7 +139,10 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
       avatarUrl: profile?.avatar_url ?? null,
       profile: profile ?? null,
     };
-  } catch {
+  } catch (err) {
+    if (isNetworkError(err) || (err instanceof AppError && err.code === "NETWORK")) {
+      throw err instanceof AppError ? err : new AppError("NETWORK");
+    }
     return null;
   }
 });

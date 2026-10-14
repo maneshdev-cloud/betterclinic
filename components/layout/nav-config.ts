@@ -25,6 +25,7 @@ export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  prefetch?: boolean;
 }
 
 export interface NavSection {

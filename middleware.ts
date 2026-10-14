@@ -12,7 +12,8 @@ import { roleHomePath, type Role } from "@/lib/constants";
  *  - sets strict no-store cache-control headers on protected surfaces
  */
 
-import { withRetry } from "@/lib/network/with-retry";
+import { isNetworkError } from "@/lib/network/is-network-error";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 
 const ROLE_PREFIXES: { prefix: string; roles: Role[] }[] = [
   { prefix: "/patient", roles: ["PATIENT"] },
@@ -74,6 +75,10 @@ export async function middleware(request: NextRequest) {
     return res;
   }
 
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete("x-bc-auth-user");
+  requestHeaders.delete("x-bc-auth-error");
+
   const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -81,7 +86,7 @@ export async function middleware(request: NextRequest) {
       },
       setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
+        response = NextResponse.next({ request: { headers: requestHeaders } });
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options)
         );
@@ -90,21 +95,44 @@ export async function middleware(request: NextRequest) {
   });
 
   let user = null;
+  let isTransientError = false;
+
   try {
-    // Single-attempt auth check with timeout (no multi-second retries in middleware)
     const authPromise = supabase.auth.getUser();
     const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((_, reject) =>
-      setTimeout(() => reject(new Error("Auth timeout")), 2500)
+      setTimeout(() => reject(new Error("Auth timeout")), 3500)
     );
-    const { data } = await Promise.race([authPromise, timeoutPromise]);
-    user = data.user;
+    const result = await Promise.race([authPromise, timeoutPromise]);
+    user = result.data?.user ?? null;
+    const authError = result.error;
+
+    if (authError) {
+      if (
+        isNetworkError(authError) ||
+        isAuthRetryableFetchError(authError) ||
+        (typeof authError === "object" && "status" in authError && Number((authError as any).status) >= 500)
+      ) {
+        isTransientError = true;
+      }
+    }
   } catch (err) {
     console.warn("[Middleware] Auth check encountered network failure or timeout:", err);
-    if (guarded || isAccountPage) {
-      return response;
-    }
+    isTransientError = true;
   }
 
+  // Transient network error or timeout: Never falsely redirect to /login
+  if (isTransientError) {
+    if (guarded || isAccountPage) {
+      requestHeaders.set("x-bc-auth-error", "network");
+      return applyNoStoreHeaders(NextResponse.next({ request: { headers: requestHeaders } }));
+    }
+    if (isAuthPage) {
+      return applyNoStoreHeaders(response);
+    }
+    return response;
+  }
+
+  // Confirmed unauthenticated (no session token / missing session)
   if (!user) {
     if (guarded || isAccountPage) {
       const url = request.nextUrl.clone();
@@ -117,6 +145,10 @@ export async function middleware(request: NextRequest) {
     }
     return response;
   }
+
+  // Authenticated: Pass verified user in header to prevent duplicate getUser() in server components
+  requestHeaders.set("x-bc-auth-user", encodeURIComponent(JSON.stringify(user)));
+  response = NextResponse.next({ request: { headers: requestHeaders } });
 
   // Signed in — allow /choose-role, otherwise redirect away from login/signup
   if (isAuthPage) {
