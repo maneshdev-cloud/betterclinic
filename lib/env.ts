@@ -52,7 +52,7 @@ export const env = {
     },
   },
 
-  mapsApiKey: trimEnv(process.env.MAPS_API_KEY),
+  mapsApiKey: trimEnv(process.env.NEXT_PUBLIC_MAPS_API_KEY || process.env.MAPS_API_KEY),
   appUrl: trimEnv(process.env.NEXT_PUBLIC_APP_URL),
 } as const;
 

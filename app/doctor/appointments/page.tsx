@@ -11,11 +11,26 @@ import { requireRole } from "@/services/auth/service";
 import { listDoctorToday } from "@/services/appointments/service";
 import { formatDateWithDay, formatTimeString, todayClinicDate } from "@/lib/utils";
 import { LiveRefresh } from "@/components/queue/live-refresh";
+import type { AppointmentStatus } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Doctor Appointments" };
 
 interface PageProps {
   searchParams: Record<string, string | string[] | undefined>;
+}
+
+interface DoctorAppointmentItem {
+  id: string;
+  status: AppointmentStatus;
+  appointment_type: string;
+  appointment_date: string;
+  start_time: string;
+  end_time: string;
+  visit_reason: string | null;
+  patient_name: string;
+  clinic_name: string;
+  clinic_city: string;
+  clinic_area: string;
 }
 
 export default async function DoctorAppointmentsPage({ searchParams }: PageProps) {
@@ -39,7 +54,7 @@ export default async function DoctorAppointmentsPage({ searchParams }: PageProps
     .order("start_time", { ascending: tab === "past" ? false : true })
     .limit(100);
 
-  const appointments = (allAppointments ?? []).map((row: any) => ({
+  const appointments: DoctorAppointmentItem[] = (allAppointments ?? []).map((row: any) => ({
     id: row.id,
     status: row.status,
     appointment_type: row.appointment_type,

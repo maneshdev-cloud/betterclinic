@@ -92,16 +92,16 @@ function getGlobalMockState(): MockState {
           status: "WAITING",
           clinic_id: MOCK_CLINICS[0].id,
           doctor_id: MOCK_DOCTORS[0].id,
-          patient_id: "00000000-0000-0000-0000-000000000001",
-          appointment_id: "a1111111-1111-1111-1111-111111111111",
+          patient_id: "00000000-0000-0000-0000-000000000010",
+          appointment_id: "a5555555-5555-5555-5555-555555555555",
           queue_date: today,
           created_at: new Date(Date.now() - 2400000).toISOString(),
           called_at: null,
-          patient: { profile: { full_name: "Ananya Sharma" } },
+          patient: { profile: { full_name: "Rohan Mehta" } },
           doctor: { profile: { full_name: MOCK_DOCTORS[0].profile.full_name } },
           appointment: {
-            visit_reason: "Routine quarterly health checkup and blood pressure review",
-            start_time: "11:00:00",
+            visit_reason: "Primary health consultation and general wellness checkup",
+            start_time: "10:30:00",
             appointment_type: "SCHEDULED",
           },
         },
@@ -351,6 +351,13 @@ export function createMockClient(): any {
       }
       case "patients":
         return [
+          {
+            id: "00000000-0000-0000-0000-000000000010",
+            date_of_birth: "1998-07-22",
+            city: "Mumbai",
+            emergency_contact_phone: "+919820099889",
+            blood_group: "B+",
+          },
           {
             id: "00000000-0000-0000-0000-000000000001",
             date_of_birth: "1994-05-15",

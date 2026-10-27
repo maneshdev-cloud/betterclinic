@@ -618,7 +618,7 @@ describe("AI Assistant Safety & Hardening Suite", () => {
 
     expect(body.model).toBe("openai/gpt-oss-120b");
     expect(body.temperature).toBe(0.15);
-    expect(body.max_tokens).toBe(350);
+    expect(body.max_tokens).toBe(650);
 
     // Assert grounded context is passed
     const systemPrompts = body.messages.filter((m: any) => m.role === "system");

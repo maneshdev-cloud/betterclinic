@@ -178,6 +178,15 @@ export default async function DoctorProfilePage({ params, searchParams }: PagePr
                     <p className="mt-0.5 inline-flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       {clinic.area}, {clinic.city}
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${clinic.name}, ${clinic.area}, ${clinic.city}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline inline-flex items-center gap-0.5 ml-1"
+                        title="Open in Google Maps"
+                      >
+                        (Map ↗)
+                      </a>
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-end gap-1">

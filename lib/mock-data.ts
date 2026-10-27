@@ -15,17 +15,38 @@ export interface DemoAccount {
 
 export const DEMO_ACCOUNTS: Record<string, DemoAccount> = {
   PATIENT: {
-    id: "00000000-0000-0000-0000-000000000001",
+    id: "00000000-0000-0000-0000-000000000010",
     email: "patient.demo@betterclinic.app",
+    fullName: "Rohan Mehta",
+    role: "PATIENT",
+    roles: ["PATIENT"],
+    phone: "+919820099888",
+    avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=256&q=80",
+  },
+  DOCTOR: {
+    id: "00000000-0000-0000-0000-000000000005",
+    email: "doctor.demo@betterclinic.app",
+    fullName: "Dr. Aditya Verma",
+    role: "DOCTOR",
+    roles: ["DOCTOR"],
+    phone: "+919820011222",
+    avatarUrl: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=256&q=80",
+    qualification: "MBBS, DNB (Family Medicine)",
+    specialization: "General Medicine",
+    clinicName: "City Central Health Clinic",
+  },
+  PATIENT_LEGACY: {
+    id: "00000000-0000-0000-0000-000000000001",
+    email: "ananya.sharma@betterclinic.app",
     fullName: "Ananya Sharma",
     role: "PATIENT",
     roles: ["PATIENT"],
     phone: "+919820011001",
     avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80",
   },
-  DOCTOR: {
+  DOCTOR_LEGACY: {
     id: "00000000-0000-0000-0000-000000000002",
-    email: "doctor.demo@betterclinic.app",
+    email: "dr.aarav@betterclinic.app",
     fullName: "Dr. Aarav Deshmukh",
     role: "DOCTOR",
     roles: ["DOCTOR"],
@@ -134,6 +155,32 @@ export const MOCK_CLINICS = [
 ];
 
 export const MOCK_DOCTORS = [
+  {
+    id: "00000000-0000-0000-0000-000000000005",
+    registration_number: "MMC-2022-09-5142",
+    qualification: "MBBS, DNB (Family Medicine)",
+    experience_years: 4,
+    consultation_fee: 200,
+    about: "Dedicated General Physician with 4 years of clinical experience providing evidence-based primary care, preventive family medicine, and acute outpatient treatment.",
+    languages: ["English", "Hindi", "Marathi"],
+    avg_rating: 4.90,
+    review_count: 32,
+    is_accepting_patients: true,
+    is_fee_public: true,
+    profile: {
+      full_name: "Dr. Aditya Verma",
+      avatar_url: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=256&q=80",
+    },
+    specializations: [{ id: "3f062123-b03e-41c6-b5bf-84baa4fbae2f", name: "General Medicine" }],
+    clinics: [
+      {
+        id: "adf43396-4670-4f1e-b8f6-3cf4032ddc68",
+        name: "City Central Health Clinic",
+        city: "Mumbai",
+        area: "Bandra West",
+      },
+    ],
+  },
   {
     id: "00000000-0000-0000-0000-000000000002",
     registration_number: "MMC-2012-08-3419",
@@ -257,6 +304,35 @@ const tomorrowStr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 const pastStr = new Date(Date.now() - 86400000 * 5).toISOString().slice(0, 10);
 
 export const MOCK_APPOINTMENTS = [
+  {
+    id: "a5555555-5555-5555-5555-555555555555",
+    patient_id: "00000000-0000-0000-0000-000000000010",
+    doctor_id: "00000000-0000-0000-0000-000000000005",
+    clinic_id: "adf43396-4670-4f1e-b8f6-3cf4032ddc68",
+    appointment_number: "APT-2026-0101",
+    appointment_date: todayStr,
+    start_time: "10:30:00",
+    end_time: "11:00:00",
+    status: "CONFIRMED",
+    appointment_type: "SCHEDULED",
+    type: "IN_PERSON",
+    consultation_fee: 200,
+    visit_reason: "Primary health consultation and general wellness checkup",
+    notes: null,
+    cancellation_reason: null,
+    doctor: {
+      qualification: "MBBS, DNB (Family Medicine)",
+      profile: { full_name: "Dr. Aditya Verma" },
+    },
+    clinic: {
+      name: "City Central Health Clinic",
+      city: "Mumbai",
+      area: "Bandra West",
+    },
+    patient: {
+      profile: { full_name: "Rohan Mehta" },
+    },
+  },
   {
     id: "a1111111-1111-1111-1111-111111111111",
     patient_id: "00000000-0000-0000-0000-000000000001",

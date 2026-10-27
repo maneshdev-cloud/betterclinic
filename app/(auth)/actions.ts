@@ -329,24 +329,29 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
 
   if (lowerEmail.includes("doctor")) {
     role = "DOCTOR";
-    fullName = "Dr. Aarav Deshmukh";
+    fullName = DEMO_ACCOUNTS.DOCTOR.fullName;
     avatarUrl = DEMO_ACCOUNTS.DOCTOR.avatarUrl;
+    phone = DEMO_ACCOUNTS.DOCTOR.phone;
   } else if (lowerEmail.includes("staff") || lowerEmail.includes("reception")) {
     role = "RECEPTIONIST";
-    fullName = "Sunita Patil";
+    fullName = DEMO_ACCOUNTS.RECEPTIONIST.fullName;
     avatarUrl = DEMO_ACCOUNTS.RECEPTIONIST.avatarUrl;
+    phone = DEMO_ACCOUNTS.RECEPTIONIST.phone;
   } else if (lowerEmail.includes("admin")) {
     role = "CLINIC_ADMIN";
-    fullName = "Rajesh Joshi";
+    fullName = DEMO_ACCOUNTS.CLINIC_ADMIN.fullName;
     avatarUrl = DEMO_ACCOUNTS.CLINIC_ADMIN.avatarUrl;
+    phone = DEMO_ACCOUNTS.CLINIC_ADMIN.phone;
   } else {
     role = "PATIENT";
-    fullName = "Ananya Sharma";
+    fullName = DEMO_ACCOUNTS.PATIENT.fullName;
     avatarUrl = DEMO_ACCOUNTS.PATIENT.avatarUrl;
+    phone = DEMO_ACCOUNTS.PATIENT.phone;
   }
 
+  const demoAccount = DEMO_ACCOUNTS[role] || DEMO_ACCOUNTS.PATIENT;
   const demoSessionUser = {
-    id: crypto.randomUUID(),
+    id: demoAccount.id,
     email,
     fullName,
     role,

@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getClinicProfile, listClinicReviews } from "@/services/clinics/service";
 import { formatDate } from "@/lib/utils";
 import { DAYS_OF_WEEK } from "@/lib/constants";
+import { GoogleMapEmbed } from "@/components/shared/google-map-embed";
 
 interface PageProps {
   params: { id: string };
@@ -106,22 +107,30 @@ export default async function ClinicProfilePage({ params }: PageProps) {
                 <MapPin className="h-5 w-5 text-muted-foreground" aria-hidden /> Address
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-1 text-sm text-muted-foreground">
-              <p>{clinic.address_line}</p>
-              <p>
-                {clinic.area}, {clinic.city}
-                {clinic.pincode ? ` — ${clinic.pincode}` : ""}
-              </p>
-              {clinic.contact_phone ? (
-                <p className="inline-flex items-center gap-2 pt-2">
-                  <Phone className="h-4 w-4" aria-hidden /> {clinic.contact_phone}
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <div className="space-y-1">
+                <p className="font-medium text-foreground">{clinic.address_line}</p>
+                <p>
+                  {clinic.area}, {clinic.city}
+                  {clinic.pincode ? ` — ${clinic.pincode}` : ""}
                 </p>
-              ) : null}
-              {clinic.contact_email ? (
-                <p className="inline-flex items-center gap-2">
-                  <Mail className="h-4 w-4" aria-hidden /> {clinic.contact_email}
-                </p>
-              ) : null}
+                {clinic.contact_phone ? (
+                  <p className="inline-flex items-center gap-2 pt-1 text-xs">
+                    <Phone className="h-3.5 w-3.5" aria-hidden /> {clinic.contact_phone}
+                  </p>
+                ) : null}
+                {clinic.contact_email ? (
+                  <p className="inline-flex items-center gap-2 text-xs">
+                    <Mail className="h-3.5 w-3.5" aria-hidden /> {clinic.contact_email}
+                  </p>
+                ) : null}
+              </div>
+
+              <GoogleMapEmbed
+                query={`${clinic.name}, ${clinic.address_line}, ${clinic.area}, ${clinic.city}`}
+                title={clinic.name}
+                heightClass="h-48"
+              />
             </CardContent>
           </Card>
 
