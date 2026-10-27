@@ -241,7 +241,7 @@ export async function sendAssistantMessage(
       reply = llmReply;
       usedLlm = true;
     } else {
-      console.warn(`[Groq AI] Response discarded due to entity verification: ${verification.reason}`);
+      console.warn(`[Clinical AI] Response discarded due to entity verification: ${verification.reason}`);
       // Hallucinated entity detected — discard and fallback gracefully
       reply = fallback.reply + FALLBACK_GRACEFUL_NOTE;
       intent = "fallback_entity_mismatch";

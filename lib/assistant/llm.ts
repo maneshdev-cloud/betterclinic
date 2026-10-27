@@ -125,7 +125,7 @@ export async function generateLlmReply(
     );
 
     if (!response.ok) {
-      console.warn(`[Groq AI] API responded with status ${response.status}: ${response.statusText}`);
+      console.warn(`[Clinical AI] API responded with status ${response.status}: ${response.statusText}`);
       return null;
     }
 
@@ -137,7 +137,7 @@ export async function generateLlmReply(
     const content = (choice?.content && choice.content.trim().length > 0 ? choice.content : choice?.reasoning)?.trim();
     return content && content.length > 0 ? content : null;
   } catch (error) {
-    console.warn("[Groq AI] Call failed or timed out:", error);
+    console.warn("[Clinical AI] Call failed or timed out:", error);
     return null;
   } finally {
     clearTimeout(timeout);

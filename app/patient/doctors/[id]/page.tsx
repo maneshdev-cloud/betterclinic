@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { BookingSection, type BookingClinic } from "@/components/appointments/booking-section";
 import { DoctorIdBadgeModal } from "@/components/doctors/doctor-id-badge-modal";
+import { GoogleMapEmbed } from "@/components/shared/google-map-embed";
 import { createClient } from "@/lib/supabase/server";
 import {
   getDoctorProfile,
@@ -200,6 +201,16 @@ export default async function DoctorProfilePage({ params, searchParams }: PagePr
                   </div>
                 </div>
               ))}
+
+              {doctor.clinics.length > 0 && (
+                <div className="pt-2">
+                  <GoogleMapEmbed
+                    query={`${doctor.clinics[0].name}, ${doctor.clinics[0].area}, ${doctor.clinics[0].city}`}
+                    title={`${doctor.clinics[0].name} Map`}
+                    heightClass="h-44 sm:h-52"
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 

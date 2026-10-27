@@ -49,17 +49,17 @@ export function LoginForm({ nextPath, disabled = false }: { nextPath: string | n
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold tracking-tight text-foreground">Sign in</h1>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-          <Sparkles className="h-3 w-3" /> Demo Ready
+          <Sparkles className="h-3 w-3" /> Quick Access
         </span>
       </div>
       <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-        Welcome back. Enter your credentials or choose a quick demo profile below.
+        Welcome back. Enter your credentials or choose a role below to sign in instantly.
       </p>
 
-      {/* ── 1-CLICK QUICK DEMO LOGINS ────────────────────────────── */}
+      {/* ── 1-CLICK INSTANT ROLE SWITCHER ────────────────────────── */}
       <div className="mt-5 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
         <p className="text-xs font-semibold text-primary flex items-center gap-1.5 mb-2.5">
-          <span>⚡ Instant 1-Click Demo Logins:</span>
+          <span>⚡ Instant 1-Click Role Access:</span>
         </p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Button

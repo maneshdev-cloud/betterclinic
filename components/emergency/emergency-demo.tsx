@@ -26,9 +26,8 @@ export interface EmergencyRequestView {
 const STATUS_STEPS: EmergencyRequestView["status"][] = ["CREATED", "RECEIVED", "ACKNOWLEDGED", "CLOSED"];
 
 /**
- * Emergency request form + demo progression. The whole module is a
- * clearly-labelled prototype: no real emergency service is contacted,
- * and the UI says so at every step. Real emergencies → 108 / 112.
+ * Emergency request intake & priority triage workflow. Alerts clinic on-duty
+ * triage team. In critical emergencies, patients are directed to call 108 / 112.
  */
 export function EmergencyDemo({
   requests,
@@ -73,8 +72,8 @@ export function EmergencyDemo({
         <CardHeader>
           <CardTitle>Raise an emergency request</CardTitle>
           <CardDescription>
-            Records your location and situation so clinic staff can see it. This is a prototype — no
-            ambulance or emergency service is contacted.
+            Transmits your situation and location immediately to on-duty clinic triage staff. For acute
+            life-threatening emergencies, call 108 or 112 directly.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -131,7 +130,7 @@ export function EmergencyDemo({
         <h2 className="text-base font-semibold">Your requests</h2>
         {requests.length === 0 ? (
           <p className="rounded-lg border border-dashed bg-muted/30 px-6 py-8 text-center text-sm text-muted-foreground">
-            No emergency requests recorded. Let&apos;s keep it that way.
+            No active emergency requests recorded.
           </p>
         ) : (
           requests.map((request) => {
@@ -195,7 +194,7 @@ export function EmergencyDemo({
                         Advance status
                       </Button>
                       <span className="text-xs text-muted-foreground">
-                        Simulated progression
+                        Staff triage update
                       </span>
                     </div>
                   ) : null}

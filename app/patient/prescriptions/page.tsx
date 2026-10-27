@@ -15,6 +15,7 @@ import { searchParamsToObject, buildQueryString } from "@/lib/search-params";
 import { formatDate } from "@/lib/utils";
 import { FREQUENCY_LABELS, FOOD_RELATION_LABELS } from "@/lib/constants";
 import { LiveRefresh } from "@/components/queue/live-refresh";
+import { AiPrescriptionExplainerDialog } from "@/components/prescriptions/ai-prescription-explainer-dialog";
 
 export const metadata: Metadata = { title: "My prescriptions" };
 
@@ -88,7 +89,23 @@ export default async function PatientPrescriptionsPage({ searchParams }: PagePro
                     ))}
                   </ul>
                   {rx.notes ? <p className="text-sm text-muted-foreground">Note: {rx.notes}</p> : null}
-                  <div className="flex justify-end print:hidden">
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-1 print:hidden">
+                    <AiPrescriptionExplainerDialog
+                      prescription={{
+                        doctor_name: rx.doctor_name,
+                        clinic_name: rx.clinic_name,
+                        notes: rx.notes,
+                        items: rx.items.map((it) => ({
+                          medicine_name: it.medicine_name,
+                          strength: it.strength,
+                          dose: it.dose,
+                          frequency: it.frequency,
+                          duration_days: it.duration_days,
+                          food_relation: it.food_relation,
+                          instructions: it.instructions,
+                        })),
+                      }}
+                    />
                     <PrintButton label="Print prescription" />
                   </div>
                 </CardContent>

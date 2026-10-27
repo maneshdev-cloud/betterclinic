@@ -88,6 +88,15 @@ export default async function ConsultationWorkspacePage({ params }: PageProps) {
                   clinical_notes: consultation.clinical_notes,
                   assessment: consultation.assessment,
                 }}
+                patientContext={{
+                  patientName: patient.name,
+                  age: age,
+                  gender: patient.sex,
+                  sex: patient.sex,
+                  visitReason: appointment.visit_reason,
+                  allergies: allergies.map((a) => a.title),
+                  conditions: conditions.map((c) => c.title),
+                }}
               />
             </CardContent>
           </Card>

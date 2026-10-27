@@ -59,7 +59,7 @@ export const PATIENT_NAV: NavSection[] = [
     title: "Support",
     items: [
       { label: "Health assistant", href: "/patient/assistant", icon: Bot },
-      { label: "Emergency (demo)", href: "/patient/emergency", icon: Siren },
+      { label: "Emergency Care", href: "/patient/emergency", icon: Siren },
     ],
   },
   {

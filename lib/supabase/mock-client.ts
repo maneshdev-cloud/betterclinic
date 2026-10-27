@@ -366,8 +366,8 @@ export function createMockClient(): any {
             blood_group: "O+",
           },
         ];
-      case "profiles":
-        return Object.values(DEMO_ACCOUNTS).map((a) => ({
+      case "profiles": {
+        const accounts = Object.values(DEMO_ACCOUNTS).map((a) => ({
           id: a.id,
           email: a.email,
           full_name: a.fullName,
@@ -375,6 +375,20 @@ export function createMockClient(): any {
           phone: a.phone,
           avatar_url: a.avatarUrl,
         }));
+        for (const doc of MOCK_DOCTORS) {
+          if (!accounts.some((a) => a.id === doc.id)) {
+            accounts.push({
+              id: doc.id,
+              email: `${doc.profile.full_name.toLowerCase().replace(/[^a-z0-9]/g, ".")}@betterclinic.app`,
+              full_name: doc.profile.full_name,
+              role: "DOCTOR",
+              phone: "+9198200" + doc.id.slice(-6),
+              avatar_url: doc.profile.avatar_url,
+            });
+          }
+        }
+        return accounts;
+      }
       case "profile_roles":
         return Object.values(DEMO_ACCOUNTS).map((a) => ({
           profile_id: a.id,

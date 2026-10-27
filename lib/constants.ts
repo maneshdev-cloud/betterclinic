@@ -245,7 +245,7 @@ export const NOTIFICATION_TYPES = [
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
-/* ── Emergency (demo) ──────────────────────────────────────────── */
+/* ── Emergency Care ───────────────────────────────────────────── */
 
 export const EMERGENCY_STATUSES = ["CREATED", "RECEIVED", "ACKNOWLEDGED", "CLOSED"] as const;
 export type EmergencyStatus = (typeof EMERGENCY_STATUSES)[number];

@@ -6,6 +6,7 @@ import { Pagination } from "@/components/shared/pagination";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DoctorCard } from "@/components/discovery/doctor-card";
 import { DoctorFilters } from "@/components/discovery/doctor-filters";
+import { AiSymptomTriage } from "@/components/discovery/ai-symptom-triage";
 import { DoctorCardSkeleton } from "@/components/shared/skeletons";
 import { createClient } from "@/lib/supabase/server";
 import { searchDoctors, listSpecializations, DOCTOR_PAGE_SIZE } from "@/services/doctors/service";
@@ -89,6 +90,8 @@ export default async function PatientDoctorsPage({ searchParams }: PageProps) {
         title="Find doctors"
         description="Search real doctor profiles by specialization, city, fee, rating and same-day availability."
       />
+
+      <AiSymptomTriage specializations={specializations.map((s) => s.name)} />
 
       <DoctorFilters
         values={{

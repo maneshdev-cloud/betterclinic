@@ -79,7 +79,7 @@ export function AssistantChat({ initialMessages, assistantMode, modelLabel }: Ch
               : "border-sky-200 bg-sky-50 text-sky-700"
           )}
         >
-          {assistantMode === "llm" ? `LLM: ${modelLabel} · grounded in your records` : "Rule-based assistant · your records only"}
+          {assistantMode === "llm" ? "AI Health Assistant · Grounded in your records" : "Health Assistant · Grounded in your records"}
         </span>
       </div>
 

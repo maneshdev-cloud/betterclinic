@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { saveConsultationNotesAction } from "@/services/clinical/actions";
+import { AiSoapCopilot } from "@/components/clinical/ai-soap-copilot";
+import type { PatientClinicalContext } from "@/lib/assistant/soap-generator";
 
 interface ConsultationFormProps {
   consultationId: string;
@@ -17,6 +19,7 @@ interface ConsultationFormProps {
     clinical_notes: string | null;
     assessment: string | null;
   };
+  patientContext?: PatientClinicalContext;
 }
 
 const FIELDS = [
@@ -27,7 +30,7 @@ const FIELDS = [
 ] as const;
 
 /** Consultation narrative fields with explicit save (no silent autosave). */
-export function ConsultationForm({ consultationId, initial }: ConsultationFormProps) {
+export function ConsultationForm({ consultationId, initial, patientContext }: ConsultationFormProps) {
   const router = useRouter();
   const [values, setValues] = useState({
     chief_complaint: initial.chief_complaint ?? "",
@@ -65,6 +68,29 @@ export function ConsultationForm({ consultationId, initial }: ConsultationFormPr
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between pb-3 border-b">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Documentation Fields
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Type notes directly or generate using the AI Clinical Copilot.
+          </p>
+        </div>
+        <AiSoapCopilot
+          consultationId={consultationId}
+          patientContext={patientContext}
+          onApply={(data) => {
+            setValues({
+              chief_complaint: data.chief_complaint,
+              symptoms: data.symptoms,
+              clinical_notes: data.clinical_notes,
+              assessment: data.assessment,
+            });
+            setDirty(true);
+          }}
+        />
+      </div>
       {FIELDS.map((field) => (
         <div key={field.key} className="space-y-1.5">
           <Label htmlFor={`consult-${field.key}`}>{field.label}</Label>

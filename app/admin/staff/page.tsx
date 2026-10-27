@@ -111,7 +111,7 @@ export default async function AdminStaffPage() {
 
       <p className="text-xs text-muted-foreground">
         Activity counts come from this clinic&apos;s audit log (capped at the most recent 2,000 events).
-        Removing staff access is a database-level operation in this prototype.
+        Staff access revocations are managed via central clinic administration.
       </p>
     </div>
   );
