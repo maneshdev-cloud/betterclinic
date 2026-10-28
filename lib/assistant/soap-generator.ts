@@ -41,10 +41,7 @@ Return ONLY a valid JSON object with the exact keys:
 }
 Do not include markdown fences, preambles, or conversational text.`;
 
-/**
- * Deterministic fallback parser for SOAP notes when Groq is unreachable, rate-limited,
- * or running offline in a test/demo environment without an active LLM key.
- */
+// Rule-based parser for notes when offline
 export function buildDeterministicSoapNote(
   rawNotes: string,
   context?: PatientClinicalContext
@@ -52,7 +49,6 @@ export function buildDeterministicSoapNote(
   const text = rawNotes.trim();
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
-  // 1. Chief complaint detection
   let chiefComplaint = "";
   const ccMatch = text.match(/(?:c\/o|chief complaint|complains? of|presents? with|reason)(?::\s*|\s+)([^.\n]+)/i);
   if (ccMatch && ccMatch[1]) {
@@ -69,7 +65,6 @@ export function buildDeterministicSoapNote(
     chiefComplaint = "Outpatient general medical consultation";
   }
 
-  // 2. Vitals & Objective extraction
   const vitalsFound: string[] = [];
   const bpMatch = text.match(/\b(?:bp|blood pressure)[:\s]*(\d{2,3}\s*\/\s*\d{2,3}(?:\s*mmHg)?)\b/i);
   if (bpMatch) vitalsFound.push(`Blood Pressure: ${bpMatch[1].trim()}`);
@@ -91,7 +86,6 @@ export function buildDeterministicSoapNote(
     examNotes.push(`Vitals: ${vitalsFound.join(", ")}`);
   }
 
-  // Look for physical exam phrases (e.g. "On throat exam: bilateral tonsillar erythema" or "Chest: clear")
   const examKeywords = [
     { pattern: /(?:on\s+)?(?:chest|lungs?|auscultation)(?:\s+exam)?[:\s]+([^,\n.]+)/i, label: "Respiratory" },
     { pattern: /(?:on\s+)?(?:throat|pharynx|tonsils?)(?:\s+exam)?[:\s]+([^,\n.]+)/i, label: "ENT" },
@@ -109,7 +103,6 @@ export function buildDeterministicSoapNote(
     ? examNotes.join("\n")
     : (text.length > 0 ? `Physical Examination & Findings:\n• General condition: Stable, oriented.\n• Observed details: ${text.slice(0, 200)}` : "Physical examination unremarkable. Patient hemodynamically stable.");
 
-  // 3. Symptoms extraction
   const symptomKeywords = [
     "fever", "cough", "cold", "headache", "throat pain", "sore throat", "pain",
     "nausea", "vomiting", "diarrhea", "body ache", "fatigue", "chills", "breathlessness",
@@ -126,7 +119,6 @@ export function buildDeterministicSoapNote(
     symptomsText = lines.slice(0, 3).map((l) => `• ${l}`).join("\n") || "• Symptoms as reported in chief complaint";
   }
 
-  // 4. Assessment extraction
   const dxMatch = text.match(/(?:diagnosis|dx|assessment|impression|provisional)[:\s]*([^.\n]+)/i);
   let assessmentText = "";
   if (dxMatch && dxMatch[1]) {
@@ -137,7 +129,6 @@ export function buildDeterministicSoapNote(
     assessmentText = "Clinical Impression: Acute uncomplicated outpatient presentation.\nPlan: Symptomatic relief and clinical observation.";
   }
 
-  // 5. Advice
   const suggestedAdvice = "Adequate hydration, balanced diet, rest. Review immediately if high fever, worsening pain, or breathing difficulty develops.";
 
   return {
@@ -150,10 +141,7 @@ export function buildDeterministicSoapNote(
   };
 }
 
-/**
- * Generate a structured SOAP note from rough notes and patient clinical context.
- * Calls Groq LLM when available; falls back gracefully to deterministic clinical parser.
- */
+// Generates structured SOAP clinical notes from doctor observations
 export async function generateSoapNote(
   rawNotes: string,
   context?: PatientClinicalContext
@@ -212,7 +200,6 @@ export async function generateSoapNote(
     const rawContent = payload.choices?.[0]?.message?.content?.trim();
     if (!rawContent) return fallback;
 
-    // Parse JSON safely
     const cleaned = rawContent
       .replace(/^```json\s*/i, "")
       .replace(/^```\s*/, "")

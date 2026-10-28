@@ -1,16 +1,5 @@
 import { formatDateString, formatTimeString } from "@/lib/assistant/format";
 
-/**
- * Deterministic, database-grounded fallback for the health assistant.
- *
- * When no LLM key is configured (or the provider call fails), the
- * assistant answers from the patient's REAL records only: every fact in
- * a reply comes from the AssistantContext fetched from the database.
- * Questions it cannot answer from that context get an honest "I can't
- * answer that from your records" plus what it CAN do. No invented
- * medical advice, ever.
- */
-
 export type AssistantIntent =
   | "emergency"
   | "appointments"
@@ -122,7 +111,7 @@ export interface FallbackReply {
   intent: AssistantIntent;
 }
 
-/** Compose a deterministic answer from the patient's real records. */
+// Builds answers from patient records
 export function buildFallbackReply(
   message: string,
   context: AssistantContext,

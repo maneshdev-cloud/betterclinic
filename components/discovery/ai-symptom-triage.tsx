@@ -21,8 +21,10 @@ import { triageSymptomsAction } from "@/services/doctors/ai-triage-actions";
 import type { TriageResult } from "@/lib/assistant/symptom-triage";
 import { toast } from "sonner";
 
+export type SpecializationItem = string | { id: string; name: string };
+
 interface AiSymptomTriageProps {
-  specializations: string[];
+  specializations: SpecializationItem[];
 }
 
 const SAMPLE_SYMPTOMS = [
@@ -56,6 +58,8 @@ export function AiSymptomTriage({ specializations }: AiSymptomTriageProps) {
   const [result, setResult] = useState<TriageResult | null>(null);
   const [expanded, setExpanded] = useState(false);
 
+  const specNames = specializations.map((s) => (typeof s === "string" ? s : s.name));
+
   const handleTriage = async (textToUse = symptoms) => {
     const text = textToUse.trim();
     if (text.length < 3) {
@@ -68,7 +72,7 @@ export function AiSymptomTriage({ specializations }: AiSymptomTriageProps) {
 
     const res = await triageSymptomsAction({
       symptoms: text,
-      availableSpecializations: specializations,
+      availableSpecializations: specNames,
     });
 
     if (res.ok && res.data) {
@@ -86,7 +90,12 @@ export function AiSymptomTriage({ specializations }: AiSymptomTriageProps) {
 
   const handleApplySpecialty = (specialty: string) => {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
-    params.set("specialization", specialty);
+    const matched = specializations.find((s) => {
+      if (typeof s === "string") return s.toLowerCase() === specialty.toLowerCase();
+      return s.name.toLowerCase() === specialty.toLowerCase() || s.id.toLowerCase() === specialty.toLowerCase();
+    });
+    const specValue = typeof matched === "object" && matched !== null ? matched.id : specialty;
+    params.set("specialization", specValue);
     params.delete("page");
     router.push(`/patient/doctors?${params.toString()}`);
     toast.info(`Filtered doctors for ${specialty}`);
@@ -113,7 +122,7 @@ export function AiSymptomTriage({ specializations }: AiSymptomTriageProps) {
                 </Badge>
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Describe what you are experiencing in plain words, and we'll match you to the right specialty.
+                Describe what you are experiencing in plain words, and we&apos;ll match you to the right specialty.
               </p>
             </div>
           </div>
@@ -132,7 +141,6 @@ export function AiSymptomTriage({ specializations }: AiSymptomTriageProps) {
 
       {expanded && (
         <CardContent className="space-y-4 pt-1 animate-in fade-in-50 duration-200">
-          {/* Common symptom queries */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-muted-foreground">
@@ -166,7 +174,6 @@ export function AiSymptomTriage({ specializations }: AiSymptomTriageProps) {
             </div>
           </div>
 
-          {/* Text Input */}
           <div className="space-y-2">
             <Textarea
               value={symptoms}
@@ -199,11 +206,9 @@ export function AiSymptomTriage({ specializations }: AiSymptomTriageProps) {
             </div>
           </div>
 
-          {/* Result Card */}
           {result && (
             <div className="space-y-3 pt-2 animate-in fade-in-50">
               {result.isEmergency ? (
-                /* Emergency Alert */
                 <div className="rounded-lg border-2 border-red-500/80 bg-red-50/90 dark:bg-red-950/40 p-4 text-red-950 dark:text-red-200 space-y-3 shadow-md">
                   <div className="flex items-start gap-2.5">
                     <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
@@ -233,7 +238,6 @@ export function AiSymptomTriage({ specializations }: AiSymptomTriageProps) {
                   </div>
                 </div>
               ) : (
-                /* Routine / Same-Day Recommendation */
                 <div className="rounded-lg border bg-card p-4 space-y-3 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2.5">
                     <div className="flex items-center gap-2">
@@ -263,7 +267,6 @@ export function AiSymptomTriage({ specializations }: AiSymptomTriageProps) {
                     </div>
                   </div>
 
-                  {/* Main Recommendation */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-primary/5 p-3 rounded-md">
                     <div>
                       <p className="text-base font-bold text-foreground">
@@ -285,7 +288,6 @@ export function AiSymptomTriage({ specializations }: AiSymptomTriageProps) {
                     </Button>
                   </div>
 
-                  {/* Questions to prepare */}
                   {result.questionsToPrepare.length > 0 && (
                     <div className="pt-1 text-xs space-y-1.5">
                       <p className="font-semibold text-muted-foreground flex items-center gap-1">

@@ -213,7 +213,6 @@ export function AiSoapCopilot({
           </div>
         </DialogHeader>
 
-        {/* Patient Context Header */}
         {patientContext && (
           <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-2.5 text-xs">
             <span className="font-semibold text-foreground">Patient Context:</span>
@@ -244,7 +243,6 @@ export function AiSoapCopilot({
           </div>
         )}
 
-        {/* Standard Clinical Case Templates */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-medium text-muted-foreground">
@@ -278,11 +276,10 @@ export function AiSoapCopilot({
           </div>
         </div>
 
-        {/* Raw Doctor Notes Input */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="raw-clinical-notes" className="text-xs font-semibold">
-              Doctor's Raw Notes / Observations / Vitals:
+              Doctor&apos;s Raw Notes / Observations / Vitals:
             </Label>
             {speechSupported && (
               <Button
@@ -315,7 +312,6 @@ export function AiSoapCopilot({
           />
         </div>
 
-        {/* Generate Trigger */}
         <div className="flex items-center justify-between pt-1">
           <p className="text-[11px] text-muted-foreground">
             Grounded in clinical safety. Outputs structured Subjective, Objective, Assessment, and Plan.
@@ -331,7 +327,6 @@ export function AiSoapCopilot({
           </Button>
         </div>
 
-        {/* Structured Results Preview */}
         {result && (
           <div className="space-y-3 rounded-lg border bg-card p-4 shadow-sm animate-in fade-in-50">
             <div className="flex items-center justify-between border-b pb-2">

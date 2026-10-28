@@ -49,7 +49,7 @@ export const slotDateSchema = dateStringSchema.refine(
 
 export const doctorSearchSchema = z.object({
   q: z.string().trim().max(80).optional().default(""),
-  specialization: uuidSchema.optional().or(z.literal("")),
+  specialization: z.string().trim().max(100).optional().default(""),
   city: z.string().trim().max(60).optional().default(""),
   maxFee: z.coerce.number().int().min(0).max(20000).optional(),
   minRating: z.coerce.number().min(0).max(5).optional(),
@@ -65,7 +65,7 @@ export const clinicSearchSchema = z.object({
   q: z.string().trim().max(80).optional().default(""),
   city: z.string().trim().max(60).optional().default(""),
   area: z.string().trim().max(60).optional().default(""),
-  specialization: uuidSchema.optional().or(z.literal("")),
+  specialization: z.string().trim().max(100).optional().default(""),
   minRating: z.coerce.number().min(0).max(5).optional(),
   sort: z.enum(["rating", "name"]).optional().default("rating"),
   page: z.coerce.number().int().min(1).optional().default(1),

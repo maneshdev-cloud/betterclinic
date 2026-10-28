@@ -23,7 +23,7 @@ export interface AssistantMessageView {
   createdAt: string;
 }
 
-/** Each patient has exactly one conversation (ai_conversations.patient_id unique). */
+// Fetch or create conversation for patient
 export async function getOrCreateConversation(
   client: SupabaseClient,
   patientId: string
@@ -75,12 +75,7 @@ export async function listMessages(
   }));
 }
 
-/**
- * Build the assistant's view of the patient's real records. Every reply
- * — LLM or fallback — is grounded in exactly this data.
- *
- * READ-ONLY GUARANTEE: Only SELECT queries are executed; no mutations.
- */
+// Builds context from patient records
 export async function buildAssistantContext(
   client: SupabaseClient,
   patientId: string,
@@ -143,20 +138,7 @@ export interface AssistantReply {
   isEmergencyOverride?: boolean;
 }
 
-/**
- * Handle one patient message following the strict layered response architecture:
- *
- * 1. Always fetch the patient's actual records first (Grounding).
- * 2. Pre-LLM Emergency keyword override: if matched, return hardcoded emergency response
- *    immediately — Groq is NEVER called.
- * 3. Deterministic records engine: if question confidently matches known patterns
- *    (appointments, medications, follow-ups, queue, etc.), return direct data answer —
- *    Groq is NEVER called.
- * 4. Open-ended queries: Call Groq grounded with real records.
- *    - Verify response entities against real context (detect hallucinations).
- *    - If Groq fails (429, timeout, network) or hallucination is detected,
- *      gracefully degrade to the plain data answer + calm honest notification.
- */
+// Handles patient messages with safety checks, database lookup, and fallback
 export async function sendAssistantMessage(
   client: SupabaseClient,
   patientId: string,
@@ -166,7 +148,6 @@ export async function sendAssistantMessage(
 ): Promise<AssistantReply> {
   const conversationId = await getOrCreateConversation(client, patientId);
 
-  // Persist incoming user message
   const { error: userError } = await client.from("ai_messages").insert({
     conversation_id: conversationId,
     role: "USER",
@@ -174,7 +155,7 @@ export async function sendAssistantMessage(
   });
   if (userError) throw userError;
 
-  // 1. Always fetch the patient's actual relevant records from Supabase first
+  // Fetch patient medical records for context
   const context = injectedContext ?? (await buildAssistantContext(client, patientId, patientName));
 
   const { data: prefRow } = await client
@@ -190,7 +171,7 @@ export async function sendAssistantMessage(
   const responseLength: "concise" | "detailed" =
     prefRow?.ai_response_length === "detailed" ? "detailed" : "concise";
 
-  // 2. Keyword-triggered emergency override before LLM is ever called
+  // Emergency keyword check
   if (isEmergencyQuery(message)) {
     const reply = EMERGENCY_HARDCODED_REPLY;
     const intent = "emergency_override";
@@ -207,10 +188,9 @@ export async function sendAssistantMessage(
     return { reply, intent, usedLlm: false, isEmergencyOverride: true };
   }
 
-  // 3. Try deterministic fallback first against fetched data
+  // Check if query matches known database records directly
   const fallback = buildFallbackReply(message, context, responseLength);
   if (fallback.intent !== "unknown") {
-    // Confident match to known pattern — answer directly from database, zero Groq call!
     await client.from("ai_messages").insert({
       conversation_id: conversationId,
       role: "ASSISTANT",
@@ -223,7 +203,6 @@ export async function sendAssistantMessage(
     return { reply: fallback.reply, intent: fallback.intent, usedLlm: false, isEmergencyOverride: false };
   }
 
-  // 4. Unknown pattern: Call Groq passing the fetched data as grounding context
   const history = (await listMessages(client, conversationId))
     .filter((msg) => msg.id)
     .slice(-9, -1) // up to 4 exchanges (excluding the just-inserted message)
@@ -235,19 +214,16 @@ export async function sendAssistantMessage(
 
   const llmReply = await generateLlmReply(history, message, context, responseLength);
   if (llmReply !== null) {
-    // Post-response verification against real data (scoped entity matching)
     const verification = verifyResponseEntities(llmReply, context);
     if (verification.valid) {
       reply = llmReply;
       usedLlm = true;
     } else {
       console.warn(`[Clinical AI] Response discarded due to entity verification: ${verification.reason}`);
-      // Hallucinated entity detected — discard and fallback gracefully
       reply = fallback.reply + FALLBACK_GRACEFUL_NOTE;
       intent = "fallback_entity_mismatch";
     }
   } else {
-    // Groq call failed (quota 429, timeout, network error, or invalid key)
     reply = fallback.reply + FALLBACK_GRACEFUL_NOTE;
     intent = "fallback_llm_failed";
   }

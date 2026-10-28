@@ -87,6 +87,14 @@ describe("doctorSearchSchema (URL params)", () => {
     const parsed = doctorSearchSchema.parse({ specialization: "" });
     expect(parsed.specialization ?? "").toBe("");
   });
+
+  it("accepts specialization as a UUID or as a specialty name like Orthopedics", () => {
+    const uuidParsed = doctorSearchSchema.parse({ specialization: UUID });
+    expect(uuidParsed.specialization).toBe(UUID);
+
+    const nameParsed = doctorSearchSchema.parse({ specialization: "Orthopedics" });
+    expect(nameParsed.specialization).toBe("Orthopedics");
+  });
 });
 
 describe("clinicSearchSchema (URL params)", () => {

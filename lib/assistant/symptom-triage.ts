@@ -102,14 +102,11 @@ const DETERMINISTIC_TRIAGE_RULES: SpecialtyRule[] = [
   },
 ];
 
-/**
- * Deterministic triage rule matcher.
- */
+// Matches common symptoms to specialties
 export function buildDeterministicTriage(
   symptoms: string,
   availableSpecializations: string[] = []
 ): TriageResult {
-  // Layer 1: Emergency check
   if (isEmergencyQuery(symptoms)) {
     return {
       isEmergency: true,
@@ -127,7 +124,6 @@ export function buildDeterministicTriage(
 
   for (const rule of DETERMINISTIC_TRIAGE_RULES) {
     if (rule.keywords.some((kw) => kw.test(text))) {
-      // Check if this specialty exists in the clinic's real specialties
       const matchedName =
         availableSpecializations.find(
           (s) => s.toLowerCase() === rule.specialty.toLowerCase()
@@ -145,7 +141,6 @@ export function buildDeterministicTriage(
     }
   }
 
-  // Default fallback
   const fallbackSpecialty =
     availableSpecializations.find((s) => s.toLowerCase().includes("general")) ||
     availableSpecializations[0] ||
@@ -167,14 +162,11 @@ export function buildDeterministicTriage(
   };
 }
 
-/**
- * AI Symptom Triage using Groq LLM with safety grounding & deterministic fallback.
- */
+// Analyzes symptom text and suggests appropriate medical specialty
 export async function triageSymptoms(
   symptoms: string,
   availableSpecializations: string[] = []
 ): Promise<TriageResult> {
-  // Layer 1: Pre-LLM Emergency keyword check (always takes absolute precedence)
   if (isEmergencyQuery(symptoms)) {
     return buildDeterministicTriage(symptoms, availableSpecializations);
   }
@@ -267,7 +259,6 @@ Do NOT include markdown formatting or extra text.`;
       typeof parsed.recommendedSpecialization === "string" &&
       typeof parsed.reasoning === "string"
     ) {
-      // Find case-insensitive match in available list if present
       const matched =
         availableSpecializations.find(
           (s) => s.toLowerCase() === parsed.recommendedSpecialization.toLowerCase()

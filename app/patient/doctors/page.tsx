@@ -63,13 +63,30 @@ async function DoctorsListContent({
 
 export default async function PatientDoctorsPage({ searchParams }: PageProps) {
   const parsed = doctorSearchSchema.safeParse(searchParamsToObject(searchParams));
-  const filters = parsed.success ? parsed.data : doctorSearchSchema.parse({});
+  const rawFilters = parsed.success ? parsed.data : doctorSearchSchema.parse({});
 
   const supabase = await createClient();
   const [specializations, cities] = await Promise.all([
     listSpecializations(supabase),
     listClinicCities(supabase),
   ]);
+
+  let resolvedSpecialization = rawFilters.specialization || "";
+  if (resolvedSpecialization) {
+    const matched = specializations.find(
+      (s) =>
+        s.id.toLowerCase() === resolvedSpecialization.toLowerCase() ||
+        s.name.toLowerCase() === resolvedSpecialization.toLowerCase()
+    );
+    if (matched) {
+      resolvedSpecialization = matched.id;
+    }
+  }
+
+  const filters: DoctorSearchInput = {
+    ...rawFilters,
+    specialization: resolvedSpecialization,
+  };
 
   const buildHref = (page: number) =>
     `/patient/doctors${buildQueryString({
@@ -91,7 +108,7 @@ export default async function PatientDoctorsPage({ searchParams }: PageProps) {
         description="Search real doctor profiles by specialization, city, fee, rating and same-day availability."
       />
 
-      <AiSymptomTriage specializations={specializations.map((s) => s.name)} />
+      <AiSymptomTriage specializations={specializations} />
 
       <DoctorFilters
         values={{
@@ -109,6 +126,7 @@ export default async function PatientDoctorsPage({ searchParams }: PageProps) {
       />
 
       <Suspense
+        key={JSON.stringify(filters)}
         fallback={
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (

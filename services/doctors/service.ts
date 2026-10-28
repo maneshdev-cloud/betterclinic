@@ -109,10 +109,22 @@ export async function searchDoctors(
   const idLists: string[][] = [];
 
   if (filters.specialization) {
+    let specId = filters.specialization;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(specId);
+    if (!isUuid) {
+      const { data: specRows } = await client
+        .from("specializations")
+        .select("id")
+        .ilike("name", `%${specId}%`)
+        .limit(1);
+      if (specRows && specRows.length > 0) {
+        specId = (specRows[0] as { id: string }).id;
+      }
+    }
     const { data, error } = await client
       .from("doctor_specializations")
       .select("doctor_id")
-      .eq("specialization_id", filters.specialization)
+      .eq("specialization_id", specId)
       .limit(500);
     if (error) throw error;
     idLists.push(((data ?? []) as { doctor_id: string }[]).map((r) => r.doctor_id));

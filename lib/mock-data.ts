@@ -15,8 +15,17 @@ export interface DemoAccount {
 
 export const DEMO_ACCOUNTS: Record<string, DemoAccount> = {
   PATIENT: {
-    id: "00000000-0000-0000-0000-000000000010",
+    id: "00000000-0000-0000-0000-000000000020",
     email: "patient.demo@betterclinic.app",
+    fullName: "Aditi Rao",
+    role: "PATIENT",
+    roles: ["PATIENT"],
+    phone: "+919820011555",
+    avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80",
+  },
+  PATIENT_ROHAN: {
+    id: "00000000-0000-0000-0000-000000000010",
+    email: "rohan.mehta@betterclinic.app",
     fullName: "Rohan Mehta",
     role: "PATIENT",
     roles: ["PATIENT"],
@@ -415,11 +424,187 @@ export const MOCK_DOCTORS = [
   },
 ];
 
+export interface DemoDoctorOption {
+  id: string;
+  name: string;
+  specialization: string;
+  qualification: string;
+  experienceYears: number;
+  rating: number;
+  avatarUrl: string;
+  clinic: string;
+  city: string;
+  fee: number;
+}
+
+export const DEMO_DOCTORS: DemoDoctorOption[] = MOCK_DOCTORS.map((d) => ({
+  id: d.id,
+  name: d.profile.full_name,
+  specialization: d.specializations[0]?.name || "General Medicine",
+  qualification: d.qualification,
+  experienceYears: d.experience_years,
+  rating: d.avg_rating,
+  avatarUrl: d.profile.avatar_url,
+  clinic: d.clinics[0]?.name || "Clinic",
+  city: d.clinics[0]?.city || "Mumbai",
+  fee: d.consultation_fee,
+}));
+
+export function getDemoDoctorAccount(doctorId?: string): DemoAccount {
+  const doc = (doctorId ? MOCK_DOCTORS.find((d) => d.id === doctorId) : null) || MOCK_DOCTORS[0];
+  return {
+    id: doc.id,
+    email: `${doc.profile.full_name.toLowerCase().replace(/[^a-z0-9]/g, ".")}@betterclinic.app`,
+    fullName: doc.profile.full_name,
+    role: "DOCTOR",
+    roles: ["DOCTOR"],
+    phone: "+9198200" + doc.id.slice(-6),
+    avatarUrl: doc.profile.avatar_url,
+    qualification: doc.qualification,
+    specialization: doc.specializations[0]?.name,
+    clinicName: doc.clinics[0]?.name,
+  };
+}
+
+export interface DemoPatientOption {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  gender: string;
+  bloodGroup: string;
+  dob: string;
+  avatarUrl: string;
+}
+
+export const DEMO_PATIENTS: DemoPatientOption[] = [
+  {
+    id: "00000000-0000-0000-0000-000000000020",
+    name: "Aditi Rao",
+    email: "patient.demo@betterclinic.app",
+    phone: "+919820011555",
+    gender: "FEMALE",
+    bloodGroup: "O+",
+    dob: "2001-08-14",
+    avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000010",
+    name: "Rohan Mehta",
+    email: "rohan.mehta@betterclinic.app",
+    phone: "+919820099888",
+    gender: "MALE",
+    bloodGroup: "B+",
+    dob: "1998-07-22",
+    avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=256&q=80",
+  },
+];
+
+export function getDemoPatientAccount(patientId?: string): DemoAccount {
+  const patient = (patientId ? DEMO_PATIENTS.find((p) => p.id === patientId) : null) || DEMO_PATIENTS[0];
+  return {
+    id: patient.id,
+    email: patient.email,
+    fullName: patient.name,
+    role: "PATIENT",
+    roles: ["PATIENT"],
+    phone: patient.phone,
+    avatarUrl: patient.avatarUrl,
+  };
+}
+
 const todayStr = new Date().toISOString().slice(0, 10);
 const tomorrowStr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 const pastStr = new Date(Date.now() - 86400000 * 5).toISOString().slice(0, 10);
 
 export const MOCK_APPOINTMENTS = [
+  {
+    id: "a-aditi-today-1",
+    patient_id: "00000000-0000-0000-0000-000000000020",
+    doctor_id: "8c493931-d94c-45cb-8b93-ae5aedd08d23",
+    clinic_id: "f5cdb9e4-4d2b-4e21-beea-6e812fa1fb90",
+    appointment_number: "APT-2026-0310",
+    appointment_date: todayStr,
+    start_time: "11:30:00",
+    end_time: "12:00:00",
+    status: "CONFIRMED",
+    appointment_type: "SCHEDULED",
+    type: "IN_PERSON",
+    consultation_fee: 700,
+    visit_reason: "Acute right knee pain and joint swelling after sports injury",
+    notes: null,
+    cancellation_reason: null,
+    doctor: {
+      qualification: "MBBS, MS (Orthopedics)",
+      profile: { full_name: "Dr. Divya Deshmukh" },
+    },
+    clinic: {
+      name: "Metro Care Medical Centre",
+      city: "Pune",
+      area: "Shivaji Nagar",
+    },
+    patient: {
+      profile: { full_name: "Aditi Rao" },
+    },
+  },
+  {
+    id: "a-aditi-past-1",
+    patient_id: "00000000-0000-0000-0000-000000000020",
+    doctor_id: "00000000-0000-0000-0000-000000000005",
+    clinic_id: "adf43396-4670-4f1e-b8f6-3cf4032ddc68",
+    appointment_number: "APT-2026-0188",
+    appointment_date: pastStr,
+    start_time: "10:00:00",
+    end_time: "10:30:00",
+    status: "COMPLETED",
+    appointment_type: "SCHEDULED",
+    type: "IN_PERSON",
+    consultation_fee: 200,
+    visit_reason: "Seasonal allergy, rhinorrhea and mild dry cough",
+    notes: "Prescribed antihistamines and advised steam inhalation.",
+    cancellation_reason: null,
+    doctor: {
+      qualification: "MBBS, DNB (Family Medicine)",
+      profile: { full_name: "Dr. Aditya Verma" },
+    },
+    clinic: {
+      name: "City Central Health Clinic",
+      city: "Mumbai",
+      area: "Bandra West",
+    },
+    patient: {
+      profile: { full_name: "Aditi Rao" },
+    },
+  },
+  {
+    id: "a-ortho-today-1",
+    patient_id: "00000000-0000-0000-0000-000000000010",
+    doctor_id: "8c493931-d94c-45cb-8b93-ae5aedd08d23",
+    clinic_id: "f5cdb9e4-4d2b-4e21-beea-6e812fa1fb90",
+    appointment_number: "APT-2026-0218",
+    appointment_date: todayStr,
+    start_time: "11:30:00",
+    end_time: "12:00:00",
+    status: "CONFIRMED",
+    appointment_type: "SCHEDULED",
+    type: "IN_PERSON",
+    consultation_fee: 700,
+    visit_reason: "Severe knee pain, swelling and difficulty bearing weight after fall",
+    notes: null,
+    cancellation_reason: null,
+    doctor: {
+      qualification: "MBBS, MS (Orthopedics)",
+      profile: { full_name: "Dr. Divya Deshmukh" },
+    },
+    clinic: {
+      name: "Metro Care Medical Centre",
+      city: "Pune",
+      area: "Shivaji Nagar",
+    },
+    patient: {
+      profile: { full_name: "Rohan Mehta" },
+    },
+  },
   {
     id: "a5555555-5555-5555-5555-555555555555",
     patient_id: "00000000-0000-0000-0000-000000000010",

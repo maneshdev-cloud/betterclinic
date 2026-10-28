@@ -49,9 +49,7 @@ export interface PrescriptionExplanation {
   usedLlm: boolean;
 }
 
-/**
- * Common common-sense purpose dictionary for frequently prescribed outpatient medications
- */
+// Common medication lookup for patient explanations
 const MEDICINE_PURPOSES: Record<string, { purposeEn: string; purposeHi: string; cautionEn: string }> = {
   paracetamol: {
     purposeEn: "Reduces fever, headache, body aches, and mild to moderate pain.",
@@ -186,15 +184,12 @@ function getFoodAdvice(relation: string, isHindi: boolean): string {
   }
 }
 
-/**
- * Deterministic explanation and timeline builder.
- */
+// Formats structured medication schedules from prescription records
 export function buildDeterministicPrescriptionExplanation(
   input: PrescriptionExplanationInput
 ): PrescriptionExplanation {
   const isHindi = input.language === "hi";
 
-  // Build daily timeline slots
   const morningMeds: TimelineSlot["medicines"] = [];
   const afternoonMeds: TimelineSlot["medicines"] = [];
   const eveningMeds: TimelineSlot["medicines"] = [];
@@ -315,9 +310,7 @@ export function buildDeterministicPrescriptionExplanation(
   };
 }
 
-/**
- * Generate AI-enhanced prescription explanation using Groq LLM with fallback
- */
+// Generates patient-friendly explanations and schedules
 export async function generatePrescriptionExplanation(
   input: PrescriptionExplanationInput
 ): Promise<PrescriptionExplanation> {

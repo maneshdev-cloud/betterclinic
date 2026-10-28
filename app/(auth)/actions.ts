@@ -5,7 +5,13 @@ import { redirect, RedirectType } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
-import { DEMO_ACCOUNTS } from "@/lib/mock-data";
+import {
+  DEMO_ACCOUNTS,
+  DEMO_PATIENTS,
+  getDemoDoctorAccount,
+  getDemoPatientAccount,
+  MOCK_DOCTORS,
+} from "@/lib/mock-data";
 import { toAppError } from "@/lib/errors";
 import { roleHomePath, ROLE_LABELS, type Role } from "@/lib/constants";
 import {
@@ -247,7 +253,7 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
     console.warn("[signUpAction] Supabase unavailable, falling back to Demo account creation:", err);
   }
 
-  // Graceful Demo Mode Account Creation Fallback
+  // Demo account fallback
   const newDemoUser = {
     id: crypto.randomUUID(),
     email: data.email,
@@ -319,15 +325,35 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
     console.warn("[signInAction] Supabase unavailable, falling back to Demo sign-in:", err);
   }
 
-  // Graceful Demo Sign-in Fallback
-  // Check if matching predefined demo account
+  // Demo account fallback
   const lowerEmail = email.toLowerCase();
   let role: Role = "PATIENT";
   let fullName = email.split("@")[0] || "Demo User";
   let phone = "+919820011001";
   let avatarUrl: string | null = null;
+  let qualification: string | undefined;
+  let specialization: string | undefined;
+  let clinicName: string | undefined;
+  let specificId: string | null = null;
 
-  if (lowerEmail.includes("doctor")) {
+  const matchedDoc = MOCK_DOCTORS.find(
+    (d) =>
+      lowerEmail.includes(d.id.toLowerCase()) ||
+      lowerEmail.includes(d.profile.full_name.toLowerCase().replace(/[^a-z0-9]/g, "")) ||
+      d.specializations.some((s) => lowerEmail.includes(s.name.toLowerCase().replace(/[^a-z0-9]/g, ""))) ||
+      d.profile.full_name.toLowerCase().split(" ").some((part) => part.length > 2 && lowerEmail.includes(part))
+  );
+
+  if (matchedDoc) {
+    role = "DOCTOR";
+    specificId = matchedDoc.id;
+    fullName = matchedDoc.profile.full_name;
+    avatarUrl = matchedDoc.profile.avatar_url;
+    phone = "+9198200" + matchedDoc.id.slice(-6);
+    qualification = matchedDoc.qualification;
+    specialization = matchedDoc.specializations[0]?.name;
+    clinicName = matchedDoc.clinics[0]?.name;
+  } else if (lowerEmail.includes("doctor")) {
     role = "DOCTOR";
     fullName = DEMO_ACCOUNTS.DOCTOR.fullName;
     avatarUrl = DEMO_ACCOUNTS.DOCTOR.avatarUrl;
@@ -344,12 +370,40 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
     phone = DEMO_ACCOUNTS.CLINIC_ADMIN.phone;
   } else {
     role = "PATIENT";
-    fullName = DEMO_ACCOUNTS.PATIENT.fullName;
-    avatarUrl = DEMO_ACCOUNTS.PATIENT.avatarUrl;
-    phone = DEMO_ACCOUNTS.PATIENT.phone;
+    const matchedPatient = DEMO_PATIENTS.find(
+      (p) =>
+        lowerEmail.includes(p.id.toLowerCase()) ||
+        lowerEmail.includes(p.email.toLowerCase()) ||
+        lowerEmail.includes(p.name.toLowerCase().replace(/[^a-z0-9]/g, "")) ||
+        p.name.toLowerCase().split(" ").some((part) => part.length > 2 && lowerEmail.includes(part))
+    );
+    if (matchedPatient) {
+      specificId = matchedPatient.id;
+      fullName = matchedPatient.name;
+      avatarUrl = matchedPatient.avatarUrl;
+      phone = matchedPatient.phone;
+    } else {
+      fullName = DEMO_ACCOUNTS.PATIENT.fullName;
+      avatarUrl = DEMO_ACCOUNTS.PATIENT.avatarUrl;
+      phone = DEMO_ACCOUNTS.PATIENT.phone;
+    }
   }
 
-  const demoAccount = DEMO_ACCOUNTS[role] || DEMO_ACCOUNTS.PATIENT;
+  const demoAccount = specificId
+    ? {
+        id: specificId,
+        email,
+        fullName,
+        role,
+        roles: [role],
+        phone,
+        avatarUrl,
+        qualification,
+        specialization,
+        clinicName,
+      }
+    : DEMO_ACCOUNTS[role] || DEMO_ACCOUNTS.PATIENT;
+
   const demoSessionUser = {
     id: demoAccount.id,
     email,
@@ -358,6 +412,9 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
     roles: [role],
     phone,
     avatarUrl,
+    qualification: demoAccount.qualification,
+    specialization: demoAccount.specialization,
+    clinicName: demoAccount.clinicName,
   };
 
   const cookieStore = cookies();
@@ -376,8 +433,19 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
 
 /* ── Quick Demo Login ───────────────────────────────────────────── */
 
-export async function quickDemoLoginAction(role: Role): Promise<{ redirectUrl: string }> {
-  const account = DEMO_ACCOUNTS[role] || DEMO_ACCOUNTS.PATIENT;
+export async function quickDemoLoginAction(
+  role: Role,
+  doctorId?: string,
+  patientId?: string
+): Promise<{ redirectUrl: string }> {
+  let account: any;
+  if (role === "DOCTOR") {
+    account = getDemoDoctorAccount(doctorId);
+  } else if (role === "PATIENT") {
+    account = getDemoPatientAccount(patientId);
+  } else {
+    account = DEMO_ACCOUNTS[role] || DEMO_ACCOUNTS.PATIENT;
+  }
   const cookieStore = cookies();
   cookieStore.set("bc_demo_user", JSON.stringify(account), {
     path: "/",
@@ -393,13 +461,22 @@ export async function quickDemoLoginAction(role: Role): Promise<{ redirectUrl: s
 
 /* ── Switch active role ─────────────────────────────────────────── */
 
-export async function switchRoleAction(targetRole: Role): Promise<void> {
+export async function switchRoleAction(
+  targetRole: Role,
+  doctorId?: string,
+  patientId?: string
+): Promise<void> {
   const cookieStore = cookies();
   const demoCookie = cookieStore.get("bc_demo_user");
 
   if (demoCookie?.value) {
     try {
-      const account = DEMO_ACCOUNTS[targetRole] || DEMO_ACCOUNTS.PATIENT;
+      const account =
+        targetRole === "DOCTOR"
+          ? getDemoDoctorAccount(doctorId)
+          : targetRole === "PATIENT"
+          ? getDemoPatientAccount(patientId)
+          : DEMO_ACCOUNTS[targetRole] || DEMO_ACCOUNTS.PATIENT;
       cookieStore.set("bc_demo_user", JSON.stringify(account), {
         path: "/",
         maxAge: 60 * 60 * 24 * 30,

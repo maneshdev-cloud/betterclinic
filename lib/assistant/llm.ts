@@ -2,20 +2,6 @@ import "server-only";
 import { env, isAiConfigured } from "@/lib/env";
 import type { AssistantContext } from "@/lib/assistant/fallback";
 
-/**
- * Groq LLM provider for the health assistant (server-only — the key never
- * reaches the browser). Groq exposes an OpenAI-compatible /chat/completions
- * endpoint.
- *
- * Grounding & Safety:
- * - Read-only architecture: zero tool/mutation functions are exposed.
- * - Every call is grounded strictly in the patient's real database records.
- * - History is capped to the last 4 user/assistant exchanges (8 messages max).
- * - Full safety instructions are re-injected on every single call.
- * - Temperature is locked low (0.15) for consistent, non-hallucinatory output.
- * - max_tokens is hard-capped (~350) to prevent runaway generation.
- */
-
 import { withRetry } from "@/lib/network/with-retry";
 
 export interface ChatMessage {
@@ -68,11 +54,7 @@ export function contextToPrompt(context: AssistantContext): string {
   return parts.join("\n");
 }
 
-/**
- * Ask the Groq LLM. Returns null when Groq is not configured, the request fails
- * (e.g. 429 rate limit, timeout, network error), or the response is empty.
- * Callers then fall back gracefully to the deterministic records answer.
- */
+// Returns null on error or rate-limit
 export async function generateLlmReply(
   history: ChatMessage[],
   message: string,
@@ -86,7 +68,7 @@ export async function generateLlmReply(
       ? "RESPONSE STYLE: Detailed mode. Provide thorough, clear explanations while remaining strictly grounded in the patient context and adhering to safety rules."
       : "RESPONSE STYLE: Concise mode. Keep answers short, crisp, and direct (1-3 sentences or a small bulleted list).";
 
-  // Hard cap history to last 4 exchanges (8 messages max)
+  // Keep last 4 exchanges
   const cappedHistory = history.slice(-8);
 
   const controller = new AbortController();
@@ -103,14 +85,11 @@ export async function generateLlmReply(
           },
           body: JSON.stringify({
             model: env.ai.model,
-            // Low temperature: sticks tightly to context without improvising
             temperature: 0.15,
-            // Cap max_tokens to prevent runaway generations while allowing reasoning models headroom
             max_tokens: 650,
             messages: [
               { role: "system", content: `${SYSTEM_PROMPT}\n\n${styleInstruction}` },
               { role: "system", content: `PATIENT CONTEXT (real database records):\n${contextToPrompt(context)}` },
-              // Re-inject safety instructions
               {
                 role: "system",
                 content: "SAFETY REMINDER: Never diagnose or prescribe. Never suggest altering doses. Only refer to entities present in PATIENT CONTEXT.",

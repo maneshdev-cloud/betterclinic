@@ -116,7 +116,6 @@ export function AiPrescriptionExplainerDialog({
               </DialogDescription>
             </div>
 
-            {/* Language Selector */}
             <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1 self-start sm:self-auto">
               <button
                 type="button"
@@ -156,7 +155,6 @@ export function AiPrescriptionExplainerDialog({
           </div>
         ) : explanation ? (
           <div className="space-y-6 pt-1">
-            {/* Mode Tag & Summary */}
             <div className="rounded-lg border bg-primary/5 p-3.5 text-sm leading-relaxed">
               <div className="flex items-center justify-between gap-2 mb-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1">
@@ -177,7 +175,6 @@ export function AiPrescriptionExplainerDialog({
               <p className="text-xs text-foreground/90">{explanation.summary}</p>
             </div>
 
-            {/* Daily Timeline Schedule */}
             <div className="space-y-3">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-primary" />
@@ -215,7 +212,6 @@ export function AiPrescriptionExplainerDialog({
               </div>
             </div>
 
-            {/* Medicines Breakdown & Clinical Purpose */}
             <div className="space-y-3">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -250,7 +246,6 @@ export function AiPrescriptionExplainerDialog({
               </div>
             </div>
 
-            {/* Missed Dose Advice & Safety Warnings */}
             <div className="rounded-lg border border-amber-200/70 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-950/20 p-3.5 text-xs space-y-2">
               <div className="flex items-center gap-1.5 font-semibold text-amber-900 dark:text-amber-200">
                 <ShieldAlert className="h-4 w-4 shrink-0" />
